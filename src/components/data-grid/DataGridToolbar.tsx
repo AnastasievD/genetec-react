@@ -1,14 +1,15 @@
-import { Badge, Button, Checkbox, Drawer, Group, Popover, Stack, Text, TextInput } from '@mantine/core'
-import { useEffect, useEffectEvent, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useState } from 'react'
+import { Badge, Button, Checkbox, Drawer, Group, Popover, Select, Stack, Text, TextInput } from '@mantine/core'
 import { useDebouncedValue, useDisclosure } from '@mantine/hooks'
-import type { ReactTable, RowData } from '@tanstack/react-table'
+import type { Column, ReactTable, RowData } from '@tanstack/react-table'
+import type { DataGridColumn } from './columns'
 import type { DataGridFeatures } from './features'
 
 interface DataGridToolbarProps<T extends RowData> {
   table: ReactTable<DataGridFeatures, T>
   caption: string
   captionId: string
-  labels: ReadonlyMap<string, string>
+  columnsById: ReadonlyMap<string, DataGridColumn<T>>
   totalRows: number
   filteredRows: number
   disabled: boolean
@@ -16,7 +17,7 @@ interface DataGridToolbarProps<T extends RowData> {
 }
 
 export function DataGridToolbar<T extends RowData>({
-  table, caption, captionId, labels, totalRows, filteredRows, disabled, onClearFilters,
+  table, caption, captionId, columnsById, totalRows, filteredRows, disabled, onClearFilters,
 }: DataGridToolbarProps<T>) {
   const [filtersOpened, { open: openFilters, close: closeFilters }] = useDisclosure(false)
   const [filtersVersion, setFiltersVersion] = useState(0)
@@ -39,7 +40,7 @@ export function DataGridToolbar<T extends RowData>({
                 {columns.map(column => (
                   <Checkbox
                     key={column.id}
-                    label={labels.get(column.id) ?? column.id}
+                    label={columnsById.get(column.id)?.label ?? column.id}
                     checked={column.getIsVisible()}
                     disabled={!column.getCanHide() || (column.getIsVisible() && visibleColumnCount === 1)}
                     onChange={column.getToggleVisibilityHandler()}
@@ -75,8 +76,8 @@ export function DataGridToolbar<T extends RowData>({
             {filterColumns.map(column => (
               <ColumnFilter
                 key={`${column.id}-${filtersVersion}`}
-                label={labels.get(column.id) ?? column.id}
-                initialValue={String(column.getFilterValue() ?? '')}
+                column={column}
+                config={columnsById.get(column.id)}
                 onChange={value => {
                   if (value === (column.getFilterValue() ?? '')) return
                   column.setFilterValue(value)
@@ -88,10 +89,14 @@ export function DataGridToolbar<T extends RowData>({
               {filteredRows} of {totalRows} records match.
             </Text>
             <Group grow>
-              <Button variant="default" disabled={activeFilterCount === 0} onClick={() => {
+              <Button
+                variant="default"
+                disabled={activeFilterCount === 0}
+                onClick={() => {
                   onClearFilters()
                   setFiltersVersion(version => version + 1)
-                }}>
+                }}
+              >
                 Clear filters
               </Button>
               <Button onClick={closeFilters}>Done</Button>
@@ -103,16 +108,44 @@ export function DataGridToolbar<T extends RowData>({
   )
 }
 
-interface ColumnFilterProps {
+interface ColumnFilterProps<T extends RowData> {
+  column: Column<DataGridFeatures, T>
+  config?: DataGridColumn<T>
+  onChange: (value: string) => void
+}
+
+function ColumnFilter<T extends RowData>({ column, config, onChange }: ColumnFilterProps<T>) {
+  const label = config?.label ?? column.id
+  const initialValue = String(column.getFilterValue() ?? '')
+
+  if (config?.filter === 'select') {
+    return <SelectFilter column={column} label={label} initialValue={initialValue} onChange={onChange} />
+  }
+
+  if (config?.filter === 'date') {
+    return (
+      <TextInput
+        type="date"
+        label={label}
+        defaultValue={initialValue}
+        onChange={event => onChange(event.currentTarget.value)}
+      />
+    )
+  }
+
+  return <TextFilter label={label} initialValue={initialValue} onChange={onChange} />
+}
+
+interface FilterInputProps {
   label: string
   initialValue: string
   onChange: (value: string) => void
 }
 
-function ColumnFilter({ label, initialValue, onChange }: ColumnFilterProps) {
+// Filtering 100k rows takes ~50-100 ms, so text is applied once typing pauses.
+function TextFilter({ label, initialValue, onChange }: FilterInputProps) {
   const [value, setValue] = useState(initialValue)
   const [debouncedValue] = useDebouncedValue(value, 250)
-
   const applyFilter = useEffectEvent(onChange)
 
   useEffect(() => applyFilter(debouncedValue), [debouncedValue])
@@ -123,6 +156,31 @@ function ColumnFilter({ label, initialValue, onChange }: ColumnFilterProps) {
       placeholder={`Filter ${label}`}
       value={value}
       onChange={event => setValue(event.currentTarget.value)}
+    />
+  )
+}
+
+interface SelectFilterProps<T extends RowData> extends FilterInputProps {
+  column: Column<DataGridFeatures, T>
+}
+
+function SelectFilter<T extends RowData>({ column, label, initialValue, onChange }: SelectFilterProps<T>) {
+  const rows = column.table.getCoreRowModel().rows
+  const options = useMemo(() => {
+    const values = new Set(rows.map(row => row.getValue(column.id)))
+    return [...values]
+      .sort((a, b) => (a as string | number) < (b as string | number) ? -1 : 1)
+      .map(String)
+  }, [rows, column.id])
+
+  return (
+    <Select
+      label={label}
+      placeholder="Any"
+      data={options}
+      defaultValue={initialValue || null}
+      onChange={value => onChange(value ?? '')}
+      clearable
     />
   )
 }

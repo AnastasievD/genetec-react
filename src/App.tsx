@@ -2,6 +2,7 @@ import { Activity, useMemo, useState } from 'react'
 import { Alert, Box, Button, Container, Group, Modal, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core'
 import { DataGrid, EventForm, Timeline } from './components'
 import type { EventFormValues } from './components'
+import { createEvent } from './features/events/event'
 import type { CalendarEvent } from './features/events/event'
 import {
   createEventColumns,
@@ -34,7 +35,7 @@ export default function App() {
     if (existing) {
       setEvents(events => events.map(event => event.id === existing.id ? { ...event, ...values } : event))
     } else {
-      const event = { id: crypto.randomUUID(), ...values }
+      const event = createEvent(values)
       setEvents(events => [event, ...events])
       setTimelineIds(ids => new Set(ids).add(event.id))
     }

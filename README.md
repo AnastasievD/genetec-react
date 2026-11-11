@@ -21,7 +21,7 @@ into the generic components. `App.tsx` just wires things together.
 I used Mantine for UI and TanStack Table / Virtual for the heavy lifting. I didn't want
 to write sorting and pagination by hand when a well-tested headless library exists, but
 I also didn't want TanStack types to leak into the grid's API. So `DataGrid` takes its
-own column config (`label`, `accessor`, `hidden`, `sort`, `render`...) and converts it
+own column config (`label`, `accessor`, `hidden`, `sort`, `filter`, `render`...) and converts it
 internally. If we ever swap the table engine, consumers won't notice.
 
 ## State

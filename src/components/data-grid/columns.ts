@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import type { ColumnDef, RowData } from '@tanstack/react-table'
 import type { DataGridFeatures } from './features'
 
+export type DataGridFilter = 'text' | 'select' | 'date'
+
 export interface DataGridColumn<T> {
   id: string
   label: string
@@ -11,11 +13,11 @@ export interface DataGridColumn<T> {
   hidden?: boolean
   hideable?: boolean
   sort?: 'text' | 'alphanumeric' | 'number' | false
-  filterable?: boolean
+  filter?: DataGridFilter | false
 }
 
 export function toColumnDef<T extends RowData>(column: DataGridColumn<T>): ColumnDef<DataGridFeatures, T> {
-  const { id, label, accessor, render, hideable = true, sort = 'text', filterable = true } = column
+  const { id, label, accessor, render, hideable = true, sort = 'text', filter = 'text' } = column
   const read = typeof accessor === 'string' ? (row: T) => row[accessor as keyof T] : accessor
 
   return {
@@ -25,7 +27,8 @@ export function toColumnDef<T extends RowData>(column: DataGridColumn<T>): Colum
     ...(render && { cell: ({ row }) => render(row.original) }),
     enableHiding: hideable,
     enableSorting: Boolean(read) && sort !== false,
-    enableColumnFilter: Boolean(read) && filterable,
+    enableColumnFilter: Boolean(read) && filter !== false,
+    filterFn: filter === 'text' ? 'includesString' : 'equals',
     sortFn: sort || undefined,
   }
 }

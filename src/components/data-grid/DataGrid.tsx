@@ -31,13 +31,12 @@ export function DataGrid<T extends RowData>({
 }: DataGridProps<T>) {
   const captionId = useId()
   const columnDefs = useMemo(() => columns.map(toColumnDef), [columns])
-  const labels = useMemo(() => new Map(columns.map(column => [column.id, column.label])), [columns])
+  const columnsById = useMemo(() => new Map(columns.map(column => [column.id, column])), [columns])
   const table = useTable({
     features,
     data: rows,
     columns: columnDefs,
     getRowId,
-    defaultColumn: { filterFn: 'includesString' },
     enableMultiSort: false,
     enableSortingRemoval: true,
     sortDescFirst: false,
@@ -66,7 +65,7 @@ export function DataGrid<T extends RowData>({
         table={table}
         caption={caption}
         captionId={captionId}
-        labels={labels}
+        columnsById={columnsById}
         totalRows={rows.length}
         filteredRows={rowCount}
         disabled={unavailable}
