@@ -1,8 +1,8 @@
 import { useId } from 'react'
-import { Badge, Button, Drawer, Flex, Group, Pagination, Paper, Stack, Table, Text, TextInput, UnstyledButton } from '@mantine/core'
-import { useDisclosure } from '@mantine/hooks'
+import { Flex, Group, Pagination, Paper, Table, Text, UnstyledButton } from '@mantine/core'
 import {
   columnFilteringFeature,
+  columnVisibilityFeature,
   createFilteredRowModel,
   createPaginatedRowModel,
   createSortedRowModel,
@@ -15,9 +15,12 @@ import {
   useTable,
 } from '@tanstack/react-table'
 import type { ColumnDef, RowData } from '@tanstack/react-table'
+import { DataGridState } from './DataGridState'
+import { DataGridToolbar } from './DataGridToolbar'
 
 const features = tableFeatures({
   columnFilteringFeature,
+  columnVisibilityFeature,
   rowSortingFeature,
   rowPaginationFeature,
   filterFns: { includesString: filterFn_includesString },
@@ -35,6 +38,9 @@ interface DataGridProps<T extends RowData> {
   columns: readonly ColumnDef<DataGridFeatures, T>[]
   getRowId: (row: T) => string
   initialPageSize?: number
+  loading?: boolean
+  error?: string
+  onRetry?: () => void
 }
 
 export function DataGrid<T extends RowData>({
@@ -43,9 +49,11 @@ export function DataGrid<T extends RowData>({
   columns,
   getRowId,
   initialPageSize = 25,
+  loading = false,
+  error,
+  onRetry,
 }: DataGridProps<T>) {
   const captionId = useId()
-  const [filtersOpened, { open: openFilters, close: closeFilters }] = useDisclosure(false)
   const table = useTable({
     features,
     data: rows,
@@ -58,72 +66,22 @@ export function DataGrid<T extends RowData>({
     initialState: { pagination: { pageIndex: 0, pageSize: initialPageSize } },
   })
   const { pageIndex, pageSize } = table.state.pagination
-  const visibleRows = table.getRowModel().rows
-  const rowCount = table.getRowCount()
-  const pageCount = Math.max(1, table.getPageCount())
+  const unavailable = loading || Boolean(error)
+  const visibleRows = unavailable ? [] : table.getRowModel().rows
+  const rowCount = unavailable ? 0 : table.getRowCount()
+  const pageCount = unavailable ? 1 : Math.max(1, table.getPageCount())
   const start = pageIndex * pageSize
-  const filterColumns = table.getAllLeafColumns().filter(column => column.getCanFilter())
-  const activeFilterCount = table.state.columnFilters.length
 
   return (
-    <Paper withBorder radius="md" style={{ overflow: 'hidden' }}>
-      <Group justify="space-between" p="md">
-        <Text component="h2" id={captionId} size="md" fw={600} m={0}>
-          {caption}
-        </Text>
-        {filterColumns.length > 0 && (
-          <Button
-            variant="default"
-            size="sm"
-            onClick={openFilters}
-            aria-haspopup="dialog"
-            aria-expanded={filtersOpened}
-            rightSection={activeFilterCount > 0 ? <Badge size="sm" circle>{activeFilterCount}</Badge> : undefined}
-          >
-            Filters
-          </Button>
-        )}
-      </Group>
-      {filterColumns.length > 0 && (
-        <Drawer
-          opened={filtersOpened}
-          onClose={closeFilters}
-          position="right"
-          title={`${caption} filters`}
-          closeButtonProps={{ 'aria-label': 'Close filters' }}
-        >
-          <Stack>
-            {filterColumns.map(column => {
-              const label = typeof column.columnDef.header === 'string'
-                ? column.columnDef.header
-                : column.id
-
-              return (
-                <TextInput
-                  key={column.id}
-                  label={label}
-                  placeholder={`Filter ${label}`}
-                  value={String(column.getFilterValue() ?? '')}
-                  onChange={event => column.setFilterValue(event.currentTarget.value)}
-                />
-              )
-            })}
-            <Text size="sm" c="dimmed" role="status">
-              {rowCount} of {rows.length} records match.
-            </Text>
-            <Group grow>
-              <Button
-                variant="default"
-                disabled={activeFilterCount === 0}
-                onClick={() => table.resetColumnFilters()}
-              >
-                Clear filters
-              </Button>
-              <Button onClick={closeFilters}>Done</Button>
-            </Group>
-          </Stack>
-        </Drawer>
-      )}
+    <Paper withBorder radius="md" aria-busy={loading} style={{ overflow: 'hidden' }}>
+      <DataGridToolbar
+        table={table}
+        caption={caption}
+        captionId={captionId}
+        totalRows={rows.length}
+        filteredRows={rowCount}
+        disabled={unavailable}
+      />
       <Table.ScrollContainer minWidth={600} maxHeight="min(55vh, 32rem)" type="native">
         <Table
           aria-labelledby={captionId}
@@ -148,7 +106,7 @@ export function DataGrid<T extends RowData>({
                       aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : undefined}
                     >
                       {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                        <UnstyledButton onClick={header.column.getToggleSortingHandler()} fw={600}>
+                        <UnstyledButton disabled={unavailable} onClick={header.column.getToggleSortingHandler()} fw={600}>
                           <Group gap="xs" wrap="nowrap">
                             <table.FlexRender header={header} />
                             <span aria-hidden="true">{direction === 'asc' ? '↑' : direction === 'desc' ? '↓' : '↕'}</span>
@@ -164,13 +122,19 @@ export function DataGrid<T extends RowData>({
           <Table.Tbody>
             {visibleRows.length === 0 ? (
               <Table.Tr>
-                <Table.Td colSpan={table.getAllLeafColumns().length}>
-                  {rows.length === 0 ? 'No records to display.' : 'No matching records.'}
+                <Table.Td colSpan={Math.max(1, table.getVisibleLeafColumns().length)} style={{ whiteSpace: 'normal' }}>
+                  <DataGridState
+                    loading={loading}
+                    error={error}
+                    hasData={rows.length > 0}
+                    onRetry={onRetry}
+                    onClearFilters={() => table.resetColumnFilters()}
+                  />
                 </Table.Td>
               </Table.Tr>
             ) : visibleRows.map(row => (
               <Table.Tr key={row.id}>
-                {row.getAllCells().map(cell => {
+                {row.getVisibleCells().map(cell => {
                   const value = cell.getValue()
 
                   return (
@@ -184,33 +148,35 @@ export function DataGrid<T extends RowData>({
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>
-      <Flex
-        component="nav"
-        aria-label={`${caption} pagination`}
-        direction={{ base: 'column', sm: 'row' }}
-        align="center"
-        justify="space-between"
-        gap="sm"
-        p="md"
-        style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
-      >
-        <Text role="status" size="sm" ta={{ base: 'center', sm: 'left' }}>
-          {rowCount === 0 ? 0 : start + 1}–{start + visibleRows.length} of {rowCount} records
-          {' · '}Page {pageIndex + 1} of {pageCount}
-        </Text>
-        <Pagination
-          total={pageCount}
-          value={pageIndex + 1}
-          onChange={page => table.setPageIndex(page - 1)}
-          disabled={rowCount === 0}
-          withEdges
-          withPages={false}
-          getControlProps={control => ({
-            'aria-label': `${control} page`,
-            title: `${control} page`,
-          })}
-        />
-      </Flex>
+      {!unavailable && (
+        <Flex
+          component="nav"
+          aria-label={`${caption} pagination`}
+          direction={{ base: 'column', sm: 'row' }}
+          align="center"
+          justify="space-between"
+          gap="sm"
+          p="md"
+          style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
+        >
+          <Text role="status" size="sm" ta={{ base: 'center', sm: 'left' }}>
+            {rowCount === 0 ? 0 : start + 1}–{start + visibleRows.length} of {rowCount} records
+            {' · '}Page {pageIndex + 1} of {pageCount}
+          </Text>
+          <Pagination
+            total={pageCount}
+            value={pageIndex + 1}
+            onChange={page => table.setPageIndex(page - 1)}
+            disabled={rowCount === 0}
+            withEdges
+            withPages={false}
+            getControlProps={control => ({
+              'aria-label': `${control} page`,
+              title: `${control} page`,
+            })}
+          />
+        </Flex>
+      )}
     </Paper>
   )
 }
