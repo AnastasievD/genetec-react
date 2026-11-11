@@ -1,13 +1,13 @@
 export interface TimelineItemRow<T> {
   type: 'item'
+  key: string
   id: string
   item: T
-  itemIndex: number
   groupIndex: number
   position: number
 }
 
-type TimelineRow<T> = { type: 'group'; key: string } | TimelineItemRow<T>
+type TimelineRow<T> = { type: 'group'; key: string; groupIndex: number } | TimelineItemRow<T>
 
 export function createTimelineModel<T>(
   items: readonly T[],
@@ -24,49 +24,51 @@ export function createTimelineModel<T>(
   }
 
   const rows: TimelineRow<T>[] = []
-  const groups: { key: string; firstItemIndex: number; count: number }[] = []
-  const itemRowIndices: number[] = []
+  const groups: { key: string; firstRowIndex: number; count: number }[] = []
   const rowIndexById = new Map<string, number>()
 
   // Keys are compared as plain strings, which is the right order for ISO dates.
   for (const [key, groupItems] of [...byGroup].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
     const groupIndex = groups.length
-    groups.push({ key, firstItemIndex: itemRowIndices.length, count: groupItems.length })
-    rows.push({ type: 'group', key })
+    rows.push({ type: 'group', key: `group-${key}`, groupIndex })
+    groups.push({ key, firstRowIndex: rows.length, count: groupItems.length })
 
     groupItems.forEach((item, position) => {
       const id = getId(item)
       rowIndexById.set(id, rows.length)
-      itemRowIndices.push(rows.length)
-      rows.push({ type: 'item', id, item, position, groupIndex, itemIndex: itemRowIndices.length - 1 })
+      rows.push({ type: 'item', key: `item-${id}`, id, item, groupIndex, position })
     })
   }
 
-  return { rows, groups, itemRowIndices, rowIndexById }
+  return { rows, groups, rowIndexById }
 }
 
 export type TimelineModel<T> = ReturnType<typeof createTimelineModel<T>>
 
-export function getNavigationTarget<T>(model: TimelineModel<T>, current: TimelineItemRow<T>, key: string) {
-  const { itemRowIndices, groups } = model
+// Every group has at least one item, so a step lands on an item after skipping at most one header.
+export function getNavigationTarget<T>({ rows, groups }: TimelineModel<T>, current: number, key: string) {
+  const row = rows[current]
+  if (row?.type !== 'item') return undefined
+
+  const step = (direction: 1 | -1) => {
+    let next = current + direction
+    if (rows[next]?.type === 'group') next += direction
+    return rows[next] ? next : current
+  }
 
   switch (key) {
     case 'ArrowUp':
-      return itemRowIndices[Math.max(0, current.itemIndex - 1)]
+      return step(-1)
     case 'ArrowDown':
-      return itemRowIndices[Math.min(itemRowIndices.length - 1, current.itemIndex + 1)]
+      return step(1)
     case 'Home':
-      return itemRowIndices[0]
+      return 1
     case 'End':
-      return itemRowIndices.at(-1)
+      return rows.length - 1
     case 'ArrowLeft':
     case 'ArrowRight': {
-      const group = groups[current.groupIndex + (key === 'ArrowLeft' ? -1 : 1)]
-      const itemIndex = group
-        ? group.firstItemIndex + Math.min(current.position, group.count - 1)
-        : current.itemIndex
-
-      return itemRowIndices[itemIndex]
+      const group = groups[row.groupIndex + (key === 'ArrowLeft' ? -1 : 1)]
+      return group ? group.firstRowIndex + Math.min(row.position, group.count - 1) : current
     }
     default:
       return undefined

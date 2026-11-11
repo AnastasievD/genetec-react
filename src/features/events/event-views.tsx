@@ -1,5 +1,6 @@
 import { Badge, Box, Button, Group, Text } from '@mantine/core'
 import type { DataGridColumn } from '../../components'
+import { eventLocations, eventPriorities, eventStatuses } from './event'
 import type { CalendarEvent, EventStatus } from './event'
 
 export const getEventId = (event: CalendarEvent) => event.id
@@ -27,10 +28,11 @@ export function createEventColumns(onEdit: (event: CalendarEvent) => void): Data
       label: 'Status',
       accessor: 'status',
       filter: 'select',
+      filterOptions: eventStatuses,
       render: event => <Badge variant="light" color={statusColors[event.status]}>{event.status}</Badge>,
     },
-    { id: 'priority', label: 'Priority', accessor: 'priority', sort: 'number', filter: 'select' },
-    { id: 'location', label: 'Location', accessor: 'location', filter: 'select', hidden: true },
+    { id: 'priority', label: 'Priority', accessor: 'priority', sort: 'number', filter: 'select', filterOptions: eventPriorities },
+    { id: 'location', label: 'Location', accessor: 'location', filter: 'select', filterOptions: eventLocations, hidden: true },
     {
       id: 'actions',
       label: 'Actions',

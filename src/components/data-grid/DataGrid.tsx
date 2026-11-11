@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef } from 'react'
+import { useEffect, useEffectEvent, useId, useMemo, useRef } from 'react'
 import { Flex, Group, Pagination, Paper, Table, Text, UnstyledButton } from '@mantine/core'
 import { useTable } from '@tanstack/react-table'
 import type { RowData } from '@tanstack/react-table'
@@ -64,7 +64,7 @@ export function DataGrid<T extends RowData>({
     if (pageIndex > lastPageIndex) table.setPageIndex(lastPageIndex)
   }, [pageIndex, lastPageIndex, table])
 
-  useEffect(() => {
+  const revealHighlighted = useEffectEvent(() => {
     if (!highlightedId) return
 
     const findIndex = () => table.getPrePaginatedRowModel().rows.findIndex(row => row.id === highlightedId)
@@ -73,8 +73,11 @@ export function DataGrid<T extends RowData>({
       table.resetColumnFilters()
       index = findIndex()
     }
-    if (index !== -1) table.setPageIndex(Math.floor(index / table.state.pagination.pageSize))
-  }, [highlightedId, rows, table])
+    if (index !== -1) table.setPageIndex(Math.floor(index / pageSize))
+  })
+
+  // Only after a save (new id or new data), not on every sort, filter or page change.
+  useEffect(() => revealHighlighted(), [highlightedId, rows])
 
   useEffect(() => {
     if (!highlightedId) return

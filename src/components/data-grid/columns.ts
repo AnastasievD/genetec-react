@@ -14,6 +14,7 @@ export interface DataGridColumn<T> {
   hideable?: boolean
   sort?: 'text' | 'alphanumeric' | 'number' | false
   filter?: DataGridFilter | false
+  filterOptions?: readonly string[]
 }
 
 export function toColumnDef<T extends RowData>(column: DataGridColumn<T>): ColumnDef<DataGridFeatures, T> {

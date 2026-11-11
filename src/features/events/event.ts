@@ -1,5 +1,6 @@
 export const eventStatuses = ['scheduled', 'in progress', 'done', 'cancelled'] as const
 export const eventLocations = ['Montreal HQ', 'Toronto', 'Vancouver', 'Paris', 'Berlin', 'Remote'] as const
+export const eventPriorities = ['1', '2', '3', '4', '5'] as const
 
 export type EventStatus = typeof eventStatuses[number]
 

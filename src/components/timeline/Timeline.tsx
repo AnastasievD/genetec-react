@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
 import { Box, Group, Paper, Text, UnstyledButton, VisuallyHidden } from '@mantine/core'
 import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual'
+import type { Range } from '@tanstack/react-virtual'
 import { createTimelineModel, getNavigationTarget } from './timeline-model'
-import type { TimelineItemRow } from './timeline-model'
 
 interface TimelineProps<T> {
   items: readonly T[]
@@ -37,16 +37,16 @@ export function Timeline<T>({
   const titleId = useId()
   const instructionsId = useId()
   const scrollRef = useRef<HTMLDivElement>(null)
-  const buttons = useRef(new Map<string, HTMLButtonElement>())
   const pendingFocus = useRef<string | null>(null)
   const announcedGroup = useRef<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const model = useMemo(() => createTimelineModel(items, getId, getGroupKey), [items, getId, getGroupKey])
-  const activeRowIndex = (activeId ? model.rowIndexById.get(activeId) : undefined) ?? model.itemRowIndices[0]
+  // Row 0 is the first group header, so row 1 is the first item.
+  const activeRowIndex = (activeId ? model.rowIndexById.get(activeId) : undefined) ?? (model.rows.length > 0 ? 1 : undefined)
 
   // Keep the focused item mounted when scrolling it outside the visible range.
-  const rangeExtractor = useCallback((range: Parameters<typeof defaultRangeExtractor>[0]) => {
+  const rangeExtractor = useCallback((range: Range) => {
     const indices = defaultRangeExtractor(range)
     if (activeRowIndex !== undefined && !indices.includes(activeRowIndex)) {
       indices.push(activeRowIndex)
@@ -55,10 +55,7 @@ export function Timeline<T>({
     return indices
   }, [activeRowIndex])
 
-  const getItemKey = useCallback((index: number) => {
-    const row = model.rows[index]
-    return row?.type === 'item' ? `item-${row.id}` : `group-${row?.key}`
-  }, [model])
+  const getItemKey = useCallback((index: number) => model.rows[index]?.key ?? index, [model])
 
   // oxlint-disable-next-line react/incompatible-library -- Virtualizer models are read on every render, without memoization.
   const virtualizer = useVirtualizer({
@@ -71,28 +68,30 @@ export function Timeline<T>({
   })
   const virtualItems = virtualizer.getVirtualItems()
 
-  useEffect(() => {
+  const revealHighlighted = useEffectEvent(() => {
     const index = highlightedId ? model.rowIndexById.get(highlightedId) : undefined
     if (index === undefined) return
 
     // Make it the tab stop, but don't move focus away from where the user is.
     setActiveId(highlightedId ?? null)
     virtualizer.scrollToIndex(index, { align: 'center' })
-  }, [highlightedId, model, virtualizer])
+  })
+
+  useEffect(() => revealHighlighted(), [highlightedId, model])
 
   useLayoutEffect(() => {
     const id = pendingFocus.current
     if (!id) return
 
-    const button = buttons.current.get(id)
+    const button = scrollRef.current?.querySelector<HTMLElement>(`[data-item-id="${CSS.escape(id)}"]`)
     if (button) {
       button.focus({ preventScroll: true })
       pendingFocus.current = null
     }
   }, [activeId, virtualItems])
 
-  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, row: TimelineItemRow<T>) {
-    const index = getNavigationTarget(model, row, event.key)
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, rowIndex: number) {
+    const index = getNavigationTarget(model, rowIndex, event.key)
     if (index === undefined) return
     event.preventDefault()
 
@@ -136,8 +135,8 @@ export function Timeline<T>({
               const row = model.rows[virtualItem.index]
               if (!row) return null
 
-              const group = row.type === 'item' ? model.groups[row.groupIndex] : undefined
-              const groupLabel = formatGroupKey(row.type === 'group' ? row.key : group?.key ?? '')
+              const group = model.groups[row.groupIndex]
+              const groupLabel = formatGroupKey(group?.key ?? '')
 
               return (
                 <Box
@@ -155,10 +154,7 @@ export function Timeline<T>({
                     </Group>
                   ) : (
                     <UnstyledButton
-                      ref={node => {
-                        if (node) buttons.current.set(row.id, node)
-                        else buttons.current.delete(row.id)
-                      }}
+                      data-item-id={row.id}
                       w="100%"
                       h="100%"
                       px="md"
@@ -173,7 +169,7 @@ export function Timeline<T>({
                           setAnnouncement(`${groupLabel}, ${group?.count} items`)
                         }
                       }}
-                      onKeyDown={event => handleKeyDown(event, row)}
+                      onKeyDown={event => handleKeyDown(event, virtualItem.index)}
                       onClick={() => onItemSelect?.(row.item)}
                     >
                       {renderItem(row.item)}
