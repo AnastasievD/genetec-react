@@ -1,41 +1,17 @@
-import { useId } from 'react'
+import { useId, useMemo } from 'react'
 import { Flex, Group, Pagination, Paper, Table, Text, UnstyledButton } from '@mantine/core'
-import {
-  columnFilteringFeature,
-  columnVisibilityFeature,
-  createFilteredRowModel,
-  createPaginatedRowModel,
-  createSortedRowModel,
-  filterFn_includesString,
-  rowPaginationFeature,
-  rowSortingFeature,
-  sortFn_alphanumeric,
-  sortFn_text,
-  tableFeatures,
-  useTable,
-} from '@tanstack/react-table'
-import type { ColumnDef, RowData } from '@tanstack/react-table'
+import { useTable } from '@tanstack/react-table'
+import type { RowData } from '@tanstack/react-table'
+import { getInitialVisibility, toColumnDef } from './columns'
+import type { DataGridColumn } from './columns'
+import { features } from './features'
 import { DataGridState } from './DataGridState'
 import { DataGridToolbar } from './DataGridToolbar'
 
-const features = tableFeatures({
-  columnFilteringFeature,
-  columnVisibilityFeature,
-  rowSortingFeature,
-  rowPaginationFeature,
-  filterFns: { includesString: filterFn_includesString },
-  sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text },
-  filteredRowModel: createFilteredRowModel(),
-  sortedRowModel: createSortedRowModel(),
-  paginatedRowModel: createPaginatedRowModel(),
-})
-
-export type DataGridFeatures = typeof features
-
-interface DataGridProps<T extends RowData> {
+export interface DataGridProps<T extends RowData> {
   caption: string
   rows: readonly T[]
-  columns: readonly ColumnDef<DataGridFeatures, T>[]
+  columns: readonly DataGridColumn<T>[]
   getRowId: (row: T) => string
   initialPageSize?: number
   loading?: boolean
@@ -54,16 +30,21 @@ export function DataGrid<T extends RowData>({
   onRetry,
 }: DataGridProps<T>) {
   const captionId = useId()
+  const columnDefs = useMemo(() => columns.map(toColumnDef), [columns])
+  const labels = useMemo(() => new Map(columns.map(column => [column.id, column.label])), [columns])
   const table = useTable({
     features,
     data: rows,
-    columns,
+    columns: columnDefs,
     getRowId,
     defaultColumn: { filterFn: 'includesString' },
     enableMultiSort: false,
     enableSortingRemoval: true,
     sortDescFirst: false,
-    initialState: { pagination: { pageIndex: 0, pageSize: initialPageSize } },
+    initialState: {
+      pagination: { pageIndex: 0, pageSize: initialPageSize },
+      columnVisibility: getInitialVisibility(columns),
+    },
   })
   const { pageIndex, pageSize } = table.state.pagination
   const unavailable = loading || Boolean(error)
@@ -78,6 +59,7 @@ export function DataGrid<T extends RowData>({
         table={table}
         caption={caption}
         captionId={captionId}
+        labels={labels}
         totalRows={rows.length}
         filteredRows={rowCount}
         disabled={unavailable}

@@ -1,15 +1,19 @@
 import { Activity, useMemo, useState } from 'react'
 import { Box, Button, Container, Group, Modal, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import type { ColumnDef } from '@tanstack/react-table'
-import { DataGrid } from './components/data-grid/DataGrid'
-import type { DataGridFeatures } from './components/data-grid/DataGrid'
-import { EventForm } from './components/event-form/EventForm'
-import { Timeline } from './components/timeline/Timeline'
-import type { CalendarEvent, EventValues } from './features/events/event'
+import { DataGrid, EventForm, Timeline } from './components'
+import type { EventFormValues } from './components'
+import type { CalendarEvent } from './features/events/event'
+import {
+  createEventColumns,
+  formatDay,
+  getEventDay,
+  getEventId,
+  getEventLabel,
+  renderEventTimelineItem,
+} from './features/events/event-views'
 import { createMockEvents } from './features/events/mock-events'
 
-const getEventId = (event: CalendarEvent) => event.id
 const emptyEvents: CalendarEvent[] = []
 
 export default function App() {
@@ -19,27 +23,9 @@ export default function App() {
   const [scenario, setScenario] = useState('ready')
   const [view, setView] = useState('grid')
   const [editor, setEditor] = useState<{ event?: CalendarEvent } | null>(null)
-  const columns = useMemo<ColumnDef<DataGridFeatures, CalendarEvent>[]>(() => [
-    { accessorKey: 'id', header: 'ID', sortFn: 'alphanumeric' },
-    { accessorKey: 'title', header: 'Title', sortFn: 'alphanumeric' },
-    { accessorKey: 'date', header: 'Date', sortFn: 'text' },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }) => (
-        <Button
-          variant="subtle"
-          size="xs"
-          aria-label={`Edit ${row.original.title}`}
-          onClick={() => setEditor({ event: row.original })}
-        >
-          Edit
-        </Button>
-      ),
-    },
-  ], [])
+  const columns = useMemo(() => createEventColumns(event => setEditor({ event })), [])
 
-  function saveEvent(values: EventValues) {
+  function saveEvent(values: EventFormValues) {
     const existing = editor?.event
 
     if (existing) {
@@ -125,7 +111,18 @@ export default function App() {
           </Stack>
         </Activity>
         <Activity mode={view === 'timeline' ? 'visible' : 'hidden'}>
-          <Timeline events={timelineEvents} onEventSelect={event => setEditor({ event })} />
+          <Timeline
+            title="Timeline"
+            description={`${timelineEvents.length.toLocaleString('en')} events grouped by day`}
+            emptyMessage="No events to display."
+            items={timelineEvents}
+            getId={getEventId}
+            getGroupKey={getEventDay}
+            formatGroupKey={formatDay}
+            getItemLabel={getEventLabel}
+            renderItem={renderEventTimelineItem}
+            onItemSelect={event => setEditor({ event })}
+          />
         </Activity>
       </Stack>
     </Container>

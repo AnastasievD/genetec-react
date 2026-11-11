@@ -1,15 +1,19 @@
 import { Button, Group, Stack, TextInput } from '@mantine/core'
 import { isNotEmpty, useForm } from '@mantine/form'
-import type { EventValues } from '../../features/events/event'
 
-interface EventFormProps {
-  initialValues?: EventValues
-  onSave: (values: EventValues) => void
+export interface EventFormValues {
+  title: string
+  date: string
+}
+
+export interface EventFormProps {
+  initialValues?: EventFormValues
+  onSave: (values: EventFormValues) => void
   onCancel: () => void
 }
 
 export function EventForm({ initialValues, onSave, onCancel }: EventFormProps) {
-  const form = useForm<EventValues>({
+  const form = useForm<EventFormValues>({
     mode: 'controlled',
     initialValues: {
       title: initialValues?.title ?? '',

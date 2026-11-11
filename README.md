@@ -18,3 +18,8 @@ is rendered. Dates use `YYYY-MM-DD` to keep day grouping independent of time zon
 The timeline starts with 10,000 events from the same dataset and includes newly
 created events. TanStack Virtual renders only the visible rows and keeps the
 focused event mounted for keyboard navigation.
+
+Reusable components live in `src/components` (exported from `index.ts`) and don't
+import anything from `src/features`. DataGrid has its own column config, so TanStack
+stays an implementation detail. Timeline is generic: it groups items by `getGroupKey`
+and the app decides how an item looks.

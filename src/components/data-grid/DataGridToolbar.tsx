@@ -1,19 +1,20 @@
 import { Badge, Button, Checkbox, Drawer, Group, Popover, Stack, Text, TextInput } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import type { ReactTable, RowData } from '@tanstack/react-table'
-import type { DataGridFeatures } from './DataGrid'
+import type { DataGridFeatures } from './features'
 
 interface DataGridToolbarProps<T extends RowData> {
   table: ReactTable<DataGridFeatures, T>
   caption: string
   captionId: string
+  labels: ReadonlyMap<string, string>
   totalRows: number
   filteredRows: number
   disabled: boolean
 }
 
 export function DataGridToolbar<T extends RowData>({
-  table, caption, captionId, totalRows, filteredRows, disabled,
+  table, caption, captionId, labels, totalRows, filteredRows, disabled,
 }: DataGridToolbarProps<T>) {
   const [filtersOpened, { open: openFilters, close: closeFilters }] = useDisclosure(false)
   const columns = table.getAllLeafColumns()
@@ -35,7 +36,7 @@ export function DataGridToolbar<T extends RowData>({
                 {columns.map(column => (
                   <Checkbox
                     key={column.id}
-                    label={typeof column.columnDef.header === 'string' ? column.columnDef.header : column.id}
+                    label={labels.get(column.id) ?? column.id}
                     checked={column.getIsVisible()}
                     disabled={!column.getCanHide() || (column.getIsVisible() && visibleColumnCount === 1)}
                     onChange={column.getToggleVisibilityHandler()}
@@ -69,7 +70,7 @@ export function DataGridToolbar<T extends RowData>({
         >
           <Stack>
             {filterColumns.map(column => {
-              const label = typeof column.columnDef.header === 'string' ? column.columnDef.header : column.id
+              const label = labels.get(column.id) ?? column.id
 
               return (
                 <TextInput
