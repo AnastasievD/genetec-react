@@ -7,9 +7,9 @@ import type { CalendarEvent } from './features/events/event'
 import { createMockEvents } from './features/events/mock-events'
 
 const columns: ColumnDef<DataGridFeatures, CalendarEvent>[] = [
-  { accessorKey: 'id', header: 'ID' },
-  { accessorKey: 'title', header: 'Title' },
-  { accessorKey: 'date', header: 'Date' },
+  { accessorKey: 'id', header: 'ID', sortFn: 'alphanumeric' },
+  { accessorKey: 'title', header: 'Title', sortFn: 'alphanumeric' },
+  { accessorKey: 'date', header: 'Date', sortFn: 'text' },
 ]
 
 const getEventId = (event: CalendarEvent) => event.id
@@ -23,7 +23,6 @@ export default function App() {
         <Box component="header">
           <Text size="sm" c="dimmed">Genetec · React technical task</Text>
           <Title order={1} mt="xs">Events</Title>
-          <Text mt="xs">A data grid, timeline, and event form built with React and TypeScript.</Text>
         </Box>
         <DataGrid
           caption="Events"

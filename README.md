@@ -18,3 +18,6 @@ The demo holds 100,000 events in memory. `DataGrid` uses TanStack Table for colu
 definitions and client-side pagination. Mantine provides the table markup, pagination
 controls, and application layout.
 It renders 25 rows per page by default; `initialPageSize` sets the initial page size.
+
+Column headings toggle ascending, descending, and unsorted order. Sorting applies
+to the full dataset before pagination. IDs and titles use natural numeric ordering.
