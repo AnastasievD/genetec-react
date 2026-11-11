@@ -36,6 +36,7 @@ export function Timeline<T>({
   const scrollRef = useRef<HTMLDivElement>(null)
   const buttons = useRef(new Map<string, HTMLButtonElement>())
   const pendingFocus = useRef<string | null>(null)
+  const announcedGroup = useRef<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const model = useMemo(() => createTimelineModel(items, getId, getGroupKey), [items, getId, getGroupKey])
@@ -112,6 +113,9 @@ export function Timeline<T>({
           role="region"
           aria-labelledby={titleId}
           aria-describedby={instructionsId}
+          onBlur={event => {
+            if (!event.currentTarget.contains(event.relatedTarget)) announcedGroup.current = null
+          }}
           h="min(55vh, 32rem)"
           style={{ overflowY: 'auto', position: 'relative' }}
         >
@@ -147,10 +151,14 @@ export function Timeline<T>({
                       h="100%"
                       px="md"
                       tabIndex={virtualItem.index === activeRowIndex ? 0 : -1}
-                      aria-label={`${getItemLabel(row.item)}, ${groupLabel}`}
+                      // The button's own name covers the item; the live region only announces group changes.
+                      aria-label={`${getItemLabel(row.item)}, ${row.position + 1} of ${group?.count}`}
                       onFocus={() => {
                         setActiveId(row.id)
-                        setAnnouncement(`${groupLabel}. ${getItemLabel(row.item)}. Item ${row.position + 1} of ${group?.count}.`)
+                        if (announcedGroup.current !== group?.key) {
+                          announcedGroup.current = group?.key ?? null
+                          setAnnouncement(`${groupLabel}, ${group?.count} items`)
+                        }
                       }}
                       onKeyDown={event => handleKeyDown(event, row)}
                       onClick={() => onItemSelect?.(row.item)}
