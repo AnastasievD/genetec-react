@@ -1,4 +1,7 @@
-export type EventStatus = 'scheduled' | 'in progress' | 'done' | 'cancelled'
+export const eventStatuses = ['scheduled', 'in progress', 'done', 'cancelled'] as const
+export const eventLocations = ['Montreal HQ', 'Toronto', 'Vancouver', 'Paris', 'Berlin', 'Remote'] as const
+
+export type EventStatus = typeof eventStatuses[number]
 
 export interface CalendarEvent {
   id: string
@@ -11,12 +14,16 @@ export interface CalendarEvent {
   priority: number
 }
 
-export function createEvent(values: Pick<CalendarEvent, 'title' | 'date'>): CalendarEvent {
-  return {
-    id: crypto.randomUUID(),
-    status: 'scheduled',
-    location: 'Unassigned',
-    priority: 3,
-    ...values,
-  }
+export type EventValues = Omit<CalendarEvent, 'id'>
+
+export const newEventValues: EventValues = {
+  title: '',
+  date: '',
+  status: 'scheduled',
+  location: eventLocations[0],
+  priority: 3,
+}
+
+export function createEvent(values: EventValues): CalendarEvent {
+  return { id: crypto.randomUUID(), ...values }
 }

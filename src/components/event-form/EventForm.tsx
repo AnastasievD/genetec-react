@@ -1,26 +1,35 @@
-import { Button, Group, Stack, TextInput } from '@mantine/core'
+import { Button, Group, Select, SimpleGrid, Stack, TextInput } from '@mantine/core'
 import { isNotEmpty, useForm } from '@mantine/form'
 
-export interface EventFormValues {
+export interface EventFormValues<Status extends string = string> {
   title: string
   date: string
+  status: Status
+  location: string
+  priority: number
 }
 
-const fieldOrder = ['title', 'date'] as const
-
-export interface EventFormProps {
-  initialValues?: EventFormValues
-  onSave: (values: EventFormValues) => void
+export interface EventFormProps<Status extends string> {
+  initialValues: EventFormValues<Status>
+  statusOptions: readonly Status[]
+  locationOptions: readonly string[]
+  onSave: (values: EventFormValues<Status>) => void
   onCancel: () => void
 }
 
-export function EventForm({ initialValues, onSave, onCancel }: EventFormProps) {
-  const form = useForm<EventFormValues>({
+const fieldOrder = ['title', 'date'] as const
+const priorityOptions = ['1', '2', '3', '4', '5']
+
+export function EventForm<Status extends string>({
+  initialValues,
+  statusOptions,
+  locationOptions,
+  onSave,
+  onCancel,
+}: EventFormProps<Status>) {
+  const form = useForm<EventFormValues<Status>>({
     mode: 'controlled',
-    initialValues: {
-      title: initialValues?.title ?? '',
-      date: initialValues?.date ?? '',
-    },
+    initialValues,
     validate: {
       title: isNotEmpty('Enter a title.'),
       date: value => {
@@ -36,7 +45,7 @@ export function EventForm({ initialValues, onSave, onCancel }: EventFormProps) {
   })
 
   const handleSubmit = form.onSubmit(
-    values => onSave({ title: values.title.trim(), date: values.date }),
+    values => onSave({ ...values, title: values.title.trim() }),
     errors => {
       const firstInvalid = fieldOrder.find(field => errors[field])
       if (firstInvalid) form.getInputNode(firstInvalid)?.focus()
@@ -61,6 +70,27 @@ export function EventForm({ initialValues, onSave, onCancel }: EventFormProps) {
           max="9999-12-31"
           required
           {...form.getInputProps('date')}
+        />
+        <SimpleGrid cols={2}>
+          <Select<Status>
+            label="Status"
+            data={statusOptions}
+            allowDeselect={false}
+            {...form.getInputProps('status')}
+          />
+          <Select
+            label="Priority (1 = highest)"
+            data={priorityOptions}
+            allowDeselect={false}
+            value={String(form.values.priority)}
+            onChange={value => form.setFieldValue('priority', Number(value))}
+          />
+        </SimpleGrid>
+        <Select
+          label="Location"
+          data={locationOptions}
+          allowDeselect={false}
+          {...form.getInputProps('location')}
         />
         <Group justify="flex-end">
           <Button type="button" variant="default" onClick={onCancel}>Cancel</Button>

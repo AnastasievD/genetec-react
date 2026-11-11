@@ -1,3 +1,4 @@
+import { eventLocations } from './event'
 import type { CalendarEvent, EventStatus } from './event'
 
 const titles = [
@@ -12,7 +13,6 @@ const titles = [
   'Incident review',
 ] as const
 
-const locations = ['Montreal HQ', 'Toronto', 'Vancouver', 'Paris', 'Berlin', 'Remote'] as const
 const statuses: EventStatus[] = ['scheduled', 'scheduled', 'in progress', 'done', 'done', 'cancelled']
 
 const startDate = Date.UTC(2026, 0, 1)
@@ -35,7 +35,7 @@ export function createMockEvents(count: number): CalendarEvent[] {
       .toISOString()
       .slice(0, 10),
     status: cycle(statuses, index),
-    location: cycle(locations, Math.floor(index / 4)),
+    location: cycle(eventLocations, Math.floor(index / 4)),
     priority: 1 + Math.floor(index / 3) % 5,
   }))
 }

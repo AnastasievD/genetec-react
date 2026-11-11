@@ -1,9 +1,8 @@
 import { Activity, useMemo, useState } from 'react'
 import { Alert, Box, Button, Container, Group, Modal, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core'
 import { DataGrid, EventForm, Timeline } from './components'
-import type { EventFormValues } from './components'
-import { createEvent } from './features/events/event'
-import type { CalendarEvent } from './features/events/event'
+import { createEvent, eventLocations, eventStatuses, newEventValues } from './features/events/event'
+import type { CalendarEvent, EventValues } from './features/events/event'
 import {
   createEventColumns,
   formatDay,
@@ -30,7 +29,7 @@ export default function App() {
   const [savedId, setSavedId] = useState<string>()
   const columns = useMemo(() => createEventColumns(event => setEditor({ event })), [])
 
-  function saveEvent(values: EventFormValues) {
+  function saveEvent(values: EventValues) {
     const existing = editor?.event
 
     if (existing) {
@@ -94,7 +93,9 @@ export default function App() {
           {editor !== null && (
             <EventForm
               key={editor.event?.id ?? 'new'}
-              initialValues={editor.event}
+              initialValues={editor.event ?? newEventValues}
+              statusOptions={eventStatuses}
+              locationOptions={eventLocations}
               onSave={saveEvent}
               onCancel={() => setEditor(null)}
             />
