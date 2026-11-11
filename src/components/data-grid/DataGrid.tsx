@@ -1,4 +1,4 @@
-import { useId, useMemo } from 'react'
+import { useEffect, useId, useMemo, useRef } from 'react'
 import { Flex, Group, Pagination, Paper, Table, Text, UnstyledButton } from '@mantine/core'
 import { useTable } from '@tanstack/react-table'
 import type { RowData } from '@tanstack/react-table'
@@ -14,6 +14,8 @@ export interface DataGridProps<T extends RowData> {
   columns: readonly DataGridColumn<T>[]
   getRowId: (row: T) => string
   initialPageSize?: number
+  // Row to bring into view and highlight, e.g. the one just saved.
+  highlightedId?: string
   loading?: boolean
   error?: string
   onRetry?: () => void
@@ -25,11 +27,13 @@ export function DataGrid<T extends RowData>({
   columns,
   getRowId,
   initialPageSize = 25,
+  highlightedId,
   loading = false,
   error,
   onRetry,
 }: DataGridProps<T>) {
   const captionId = useId()
+  const rootRef = useRef<HTMLDivElement>(null)
   const columnDefs = useMemo(() => columns.map(toColumnDef), [columns])
   const columnsById = useMemo(() => new Map(columns.map(column => [column.id, column])), [columns])
   const table = useTable({
@@ -53,6 +57,31 @@ export function DataGrid<T extends RowData>({
   const rowCount = unavailable ? 0 : table.getRowCount()
   const pageCount = unavailable ? 1 : Math.max(1, table.getPageCount())
   const start = pageIndex * pageSize
+  const lastPageIndex = Math.max(0, table.getPageCount() - 1)
+
+  // Rows can shrink without a filter change (e.g. a new data set), so keep the page in range.
+  useEffect(() => {
+    if (pageIndex > lastPageIndex) table.setPageIndex(lastPageIndex)
+  }, [pageIndex, lastPageIndex, table])
+
+  useEffect(() => {
+    if (!highlightedId) return
+
+    const findIndex = () => table.getPrePaginatedRowModel().rows.findIndex(row => row.id === highlightedId)
+    let index = findIndex()
+    if (index === -1 && table.state.columnFilters.length > 0) {
+      table.resetColumnFilters()
+      index = findIndex()
+    }
+    if (index !== -1) table.setPageIndex(Math.floor(index / table.state.pagination.pageSize))
+  }, [highlightedId, rows, table])
+
+  useEffect(() => {
+    if (!highlightedId) return
+    rootRef.current
+      ?.querySelector(`[data-row-id="${CSS.escape(highlightedId)}"]`)
+      ?.scrollIntoView({ block: 'nearest' })
+  }, [highlightedId, pageIndex])
 
   function clearFilters() {
     table.resetColumnFilters()
@@ -60,7 +89,7 @@ export function DataGrid<T extends RowData>({
   }
 
   return (
-    <Paper withBorder radius="md" aria-busy={loading} style={{ overflow: 'hidden' }}>
+    <Paper ref={rootRef} withBorder radius="md" aria-busy={loading} style={{ overflow: 'hidden' }}>
       <DataGridToolbar
         table={table}
         caption={caption}
@@ -129,7 +158,11 @@ export function DataGrid<T extends RowData>({
                 </Table.Td>
               </Table.Tr>
             ) : visibleRows.map(row => (
-              <Table.Tr key={row.id}>
+              <Table.Tr
+                key={row.id}
+                data-row-id={row.id}
+                bg={row.id === highlightedId ? 'var(--mantine-primary-color-light)' : undefined}
+              >
                 {row.getVisibleCells().map(cell => {
                   const value = cell.getValue()
 
@@ -156,8 +189,9 @@ export function DataGrid<T extends RowData>({
           style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
         >
           <Text role="status" size="sm" ta={{ base: 'center', sm: 'left' }}>
-            {rowCount === 0 ? 0 : start + 1}–{start + visibleRows.length} of {rowCount} records
-            {' · '}Page {pageIndex + 1} of {pageCount}
+            {rowCount === 0 ? 0 : (start + 1).toLocaleString('en')}–{(start + visibleRows.length).toLocaleString('en')}
+            {' of '}{rowCount.toLocaleString('en')} records
+            {' · '}Page {(pageIndex + 1).toLocaleString('en')} of {pageCount.toLocaleString('en')}
           </Text>
           <Pagination
             total={pageCount}

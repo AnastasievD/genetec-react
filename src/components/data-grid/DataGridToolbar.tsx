@@ -86,7 +86,7 @@ export function DataGridToolbar<T extends RowData>({
               />
             ))}
             <Text size="sm" c="dimmed" role="status">
-              {filteredRows} of {totalRows} records match.
+              {filteredRows.toLocaleString('en')} of {totalRows.toLocaleString('en')} records match.
             </Text>
             <Group grow>
               <Button
