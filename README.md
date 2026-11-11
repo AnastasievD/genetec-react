@@ -10,3 +10,6 @@ npm run dev
 ```
 
 Checks: `npm run typecheck`, `npm run lint`, `npm run build`.
+
+The event model and reproducible mock data generator live in `src/features/events`.
+Events use date-only values (`YYYY-MM-DD`), so grouping by day is independent of time zone.
