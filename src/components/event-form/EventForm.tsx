@@ -6,6 +6,8 @@ export interface EventFormValues {
   date: string
 }
 
+const fieldOrder = ['title', 'date'] as const
+
 export interface EventFormProps {
   initialValues?: EventFormValues
   onSave: (values: EventFormValues) => void
@@ -36,8 +38,8 @@ export function EventForm({ initialValues, onSave, onCancel }: EventFormProps) {
   const handleSubmit = form.onSubmit(
     values => onSave({ title: values.title.trim(), date: values.date }),
     errors => {
-      const firstField = Object.keys(errors)[0]
-      if (firstField) form.getInputNode(firstField)?.focus()
+      const firstInvalid = fieldOrder.find(field => errors[field])
+      if (firstInvalid) form.getInputNode(firstInvalid)?.focus()
     },
   )
 
