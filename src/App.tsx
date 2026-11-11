@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
-import { Box, Button, Container, Group, Modal, Select, Stack, Text, Title } from '@mantine/core'
+import { Activity, useMemo, useState } from 'react'
+import { Box, Button, Container, Group, Modal, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataGrid } from './components/data-grid/DataGrid'
 import type { DataGridFeatures } from './components/data-grid/DataGrid'
 import { EventForm } from './components/event-form/EventForm'
+import { Timeline } from './components/timeline/Timeline'
 import type { CalendarEvent, EventValues } from './features/events/event'
 import { createMockEvents } from './features/events/mock-events'
 
@@ -13,7 +14,10 @@ const emptyEvents: CalendarEvent[] = []
 
 export default function App() {
   const [events, setEvents] = useState(() => createMockEvents(100_000))
+  const [timelineIds, setTimelineIds] = useState(() => new Set(events.slice(0, 10_000).map(event => event.id)))
+  const timelineEvents = useMemo(() => events.filter(event => timelineIds.has(event.id)), [events, timelineIds])
   const [scenario, setScenario] = useState('ready')
+  const [view, setView] = useState('grid')
   const [editor, setEditor] = useState<{ event?: CalendarEvent } | null>(null)
   const columns = useMemo<ColumnDef<DataGridFeatures, CalendarEvent>[]>(() => [
     { accessorKey: 'id', header: 'ID', sortFn: 'alphanumeric' },
@@ -43,6 +47,7 @@ export default function App() {
     } else {
       const event = { id: crypto.randomUUID(), ...values }
       setEvents(events => [event, ...events])
+      setTimelineIds(ids => new Set(ids).add(event.id))
     }
 
     setEditor(null)
@@ -67,17 +72,15 @@ export default function App() {
             </Button>
           </Group>
         </Box>
-        <Select
-          label="Data scenario"
-          value={scenario}
-          onChange={value => setScenario(value ?? 'ready')}
-          allowDeselect={false}
-          maw={240}
+        <SegmentedControl
+          value={view}
+          onChange={setView}
+          role="radiogroup"
+          aria-label="Event view"
+          w="fit-content"
           data={[
-            { value: 'ready', label: 'Events' },
-            { value: 'loading', label: 'Loading' },
-            { value: 'empty', label: 'No data' },
-            { value: 'error', label: 'Error' },
+            { value: 'grid', label: 'Table' },
+            { value: 'timeline', label: 'Timeline' },
           ]}
         />
         <Modal
@@ -95,15 +98,35 @@ export default function App() {
             />
           )}
         </Modal>
-        <DataGrid
-          caption="Events"
-          rows={scenario === 'empty' ? emptyEvents : events}
-          columns={columns}
-          getRowId={getEventId}
-          loading={scenario === 'loading'}
-          error={scenario === 'error' ? 'The mock data source is unavailable. Please try again.' : undefined}
-          onRetry={() => setScenario('ready')}
-        />
+        <Activity mode={view === 'grid' ? 'visible' : 'hidden'}>
+          <Stack gap="md">
+            <Select
+              label="Grid scenario"
+              value={scenario}
+              onChange={value => setScenario(value ?? 'ready')}
+              allowDeselect={false}
+              maw={240}
+              data={[
+                { value: 'ready', label: 'Events' },
+                { value: 'loading', label: 'Loading' },
+                { value: 'empty', label: 'No data' },
+                { value: 'error', label: 'Error' },
+              ]}
+            />
+            <DataGrid
+              caption="Events"
+              rows={scenario === 'empty' ? emptyEvents : events}
+              columns={columns}
+              getRowId={getEventId}
+              loading={scenario === 'loading'}
+              error={scenario === 'error' ? 'The mock data source is unavailable. Please try again.' : undefined}
+              onRetry={() => setScenario('ready')}
+            />
+          </Stack>
+        </Activity>
+        <Activity mode={view === 'timeline' ? 'visible' : 'hidden'}>
+          <Timeline events={timelineEvents} onEventSelect={event => setEditor({ event })} />
+        </Activity>
       </Stack>
     </Container>
   )
