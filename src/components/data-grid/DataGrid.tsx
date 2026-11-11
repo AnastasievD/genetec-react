@@ -1,8 +1,12 @@
 import { useId } from 'react'
-import { Flex, Group, Pagination, Paper, Table, Text, UnstyledButton } from '@mantine/core'
+import { Badge, Button, Drawer, Flex, Group, Pagination, Paper, Stack, Table, Text, TextInput, UnstyledButton } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import {
+  columnFilteringFeature,
+  createFilteredRowModel,
   createPaginatedRowModel,
   createSortedRowModel,
+  filterFn_includesString,
   rowPaginationFeature,
   rowSortingFeature,
   sortFn_alphanumeric,
@@ -13,9 +17,12 @@ import {
 import type { ColumnDef, RowData } from '@tanstack/react-table'
 
 const features = tableFeatures({
+  columnFilteringFeature,
   rowSortingFeature,
   rowPaginationFeature,
+  filterFns: { includesString: filterFn_includesString },
   sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text },
+  filteredRowModel: createFilteredRowModel(),
   sortedRowModel: createSortedRowModel(),
   paginatedRowModel: createPaginatedRowModel(),
 })
@@ -38,11 +45,13 @@ export function DataGrid<T extends RowData>({
   initialPageSize = 25,
 }: DataGridProps<T>) {
   const captionId = useId()
+  const [filtersOpened, { open: openFilters, close: closeFilters }] = useDisclosure(false)
   const table = useTable({
     features,
     data: rows,
     columns,
     getRowId,
+    defaultColumn: { filterFn: 'includesString' },
     enableMultiSort: false,
     enableSortingRemoval: true,
     sortDescFirst: false,
@@ -53,12 +62,68 @@ export function DataGrid<T extends RowData>({
   const rowCount = table.getRowCount()
   const pageCount = Math.max(1, table.getPageCount())
   const start = pageIndex * pageSize
+  const filterColumns = table.getAllLeafColumns().filter(column => column.getCanFilter())
+  const activeFilterCount = table.state.columnFilters.length
 
   return (
     <Paper withBorder radius="md" style={{ overflow: 'hidden' }}>
-      <Text component="h2" id={captionId} size="md" fw={600} m={0} p="md">
-        {caption}
-      </Text>
+      <Group justify="space-between" p="md">
+        <Text component="h2" id={captionId} size="md" fw={600} m={0}>
+          {caption}
+        </Text>
+        {filterColumns.length > 0 && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={openFilters}
+            aria-haspopup="dialog"
+            aria-expanded={filtersOpened}
+            rightSection={activeFilterCount > 0 ? <Badge size="sm" circle>{activeFilterCount}</Badge> : undefined}
+          >
+            Filters
+          </Button>
+        )}
+      </Group>
+      {filterColumns.length > 0 && (
+        <Drawer
+          opened={filtersOpened}
+          onClose={closeFilters}
+          position="right"
+          title={`${caption} filters`}
+          closeButtonProps={{ 'aria-label': 'Close filters' }}
+        >
+          <Stack>
+            {filterColumns.map(column => {
+              const label = typeof column.columnDef.header === 'string'
+                ? column.columnDef.header
+                : column.id
+
+              return (
+                <TextInput
+                  key={column.id}
+                  label={label}
+                  placeholder={`Filter ${label}`}
+                  value={String(column.getFilterValue() ?? '')}
+                  onChange={event => column.setFilterValue(event.currentTarget.value)}
+                />
+              )
+            })}
+            <Text size="sm" c="dimmed" role="status">
+              {rowCount} of {rows.length} records match.
+            </Text>
+            <Group grow>
+              <Button
+                variant="default"
+                disabled={activeFilterCount === 0}
+                onClick={() => table.resetColumnFilters()}
+              >
+                Clear filters
+              </Button>
+              <Button onClick={closeFilters}>Done</Button>
+            </Group>
+          </Stack>
+        </Drawer>
+      )}
       <Table.ScrollContainer minWidth={600} maxHeight="min(55vh, 32rem)" type="native">
         <Table
           aria-labelledby={captionId}
@@ -99,7 +164,9 @@ export function DataGrid<T extends RowData>({
           <Table.Tbody>
             {visibleRows.length === 0 ? (
               <Table.Tr>
-                <Table.Td colSpan={table.getAllLeafColumns().length}>No records to display.</Table.Td>
+                <Table.Td colSpan={table.getAllLeafColumns().length}>
+                  {rows.length === 0 ? 'No records to display.' : 'No matching records.'}
+                </Table.Td>
               </Table.Tr>
             ) : visibleRows.map(row => (
               <Table.Tr key={row.id}>

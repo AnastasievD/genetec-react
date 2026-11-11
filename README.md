@@ -11,13 +11,6 @@ npm run dev
 
 Checks: `npm run typecheck`, `npm run lint`, `npm run build`.
 
-The event model and reproducible mock data generator live in `src/features/events`.
-Events use date-only values (`YYYY-MM-DD`), so grouping by day is independent of time zone.
-
-The demo holds 100,000 events in memory. `DataGrid` uses TanStack Table for column
-definitions and client-side pagination. Mantine provides the table markup, pagination
-controls, and application layout.
-It renders 25 rows per page by default; `initialPageSize` sets the initial page size.
-
-Column headings toggle ascending, descending, and unsorted order. Sorting applies
-to the full dataset before pagination. IDs and titles use natural numeric ordering.
+The demo uses 100,000 reproducible mock events. TanStack Table handles client-side
+filtering, sorting, and pagination; Mantine provides the UI. Only the current page
+is rendered. Dates use `YYYY-MM-DD` to keep day grouping independent of time zone.
