@@ -1,6 +1,5 @@
 import { Activity, useMemo, useState } from 'react'
-import { Box, Button, Container, Group, Modal, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core'
-import { notifications } from '@mantine/notifications'
+import { Alert, Box, Button, Container, Group, Modal, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core'
 import { DataGrid, EventForm, Timeline } from './components'
 import type { EventFormValues } from './components'
 import type { CalendarEvent } from './features/events/event'
@@ -14,15 +13,19 @@ import {
 } from './features/events/event-views'
 import { createMockEvents } from './features/events/mock-events'
 
+type View = 'grid' | 'timeline'
+type Scenario = 'ready' | 'loading' | 'empty' | 'error'
+
 const emptyEvents: CalendarEvent[] = []
 
 export default function App() {
   const [events, setEvents] = useState(() => createMockEvents(100_000))
   const [timelineIds, setTimelineIds] = useState(() => new Set(events.slice(0, 10_000).map(event => event.id)))
   const timelineEvents = useMemo(() => events.filter(event => timelineIds.has(event.id)), [events, timelineIds])
-  const [scenario, setScenario] = useState('ready')
-  const [view, setView] = useState('grid')
+  const [scenario, setScenario] = useState<Scenario>('ready')
+  const [view, setView] = useState<View>('grid')
   const [editor, setEditor] = useState<{ event?: CalendarEvent } | null>(null)
+  const [message, setMessage] = useState('')
   const columns = useMemo(() => createEventColumns(event => setEditor({ event })), [])
 
   function saveEvent(values: EventFormValues) {
@@ -38,12 +41,7 @@ export default function App() {
 
     setEditor(null)
     setScenario('ready')
-    notifications.show({
-      color: 'green',
-      message: existing ? 'Event updated.' : 'Event created.',
-      role: 'status',
-      closeButtonProps: { 'aria-label': 'Dismiss notification' },
-    })
+    setMessage(`"${values.title}" ${existing ? 'updated' : 'created'}.`)
   }
 
   return (
@@ -58,7 +56,21 @@ export default function App() {
             </Button>
           </Group>
         </Box>
-        <SegmentedControl
+        {/* Always rendered, so screen readers pick up the message when it appears. */}
+        <Box role="status" aria-live="polite">
+          {message && (
+            <Alert
+              role="none"
+              color="green"
+              withCloseButton
+              closeButtonLabel="Dismiss message"
+              onClose={() => setMessage('')}
+            >
+              {message}
+            </Alert>
+          )}
+        </Box>
+        <SegmentedControl<View>
           value={view}
           onChange={setView}
           role="radiogroup"
@@ -86,7 +98,7 @@ export default function App() {
         </Modal>
         <Activity mode={view === 'grid' ? 'visible' : 'hidden'}>
           <Stack gap="md">
-            <Select
+            <Select<Scenario>
               label="Grid scenario"
               value={scenario}
               onChange={value => setScenario(value ?? 'ready')}
