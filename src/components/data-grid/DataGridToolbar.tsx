@@ -1,5 +1,6 @@
 import { Badge, Button, Checkbox, Drawer, Group, Popover, Stack, Text, TextInput } from '@mantine/core'
-import { useDisclosure } from '@mantine/hooks'
+import { useEffect, useEffectEvent, useState } from 'react'
+import { useDebouncedValue, useDisclosure } from '@mantine/hooks'
 import type { ReactTable, RowData } from '@tanstack/react-table'
 import type { DataGridFeatures } from './features'
 
@@ -11,12 +12,14 @@ interface DataGridToolbarProps<T extends RowData> {
   totalRows: number
   filteredRows: number
   disabled: boolean
+  onClearFilters: () => void
 }
 
 export function DataGridToolbar<T extends RowData>({
-  table, caption, captionId, labels, totalRows, filteredRows, disabled,
+  table, caption, captionId, labels, totalRows, filteredRows, disabled, onClearFilters,
 }: DataGridToolbarProps<T>) {
   const [filtersOpened, { open: openFilters, close: closeFilters }] = useDisclosure(false)
+  const [filtersVersion, setFiltersVersion] = useState(0)
   const columns = table.getAllLeafColumns()
   const filterColumns = columns.filter(column => column.getCanFilter())
   const activeFilterCount = table.state.columnFilters.length
@@ -69,24 +72,26 @@ export function DataGridToolbar<T extends RowData>({
           closeButtonProps={{ 'aria-label': 'Close filters' }}
         >
           <Stack>
-            {filterColumns.map(column => {
-              const label = labels.get(column.id) ?? column.id
-
-              return (
-                <TextInput
-                  key={column.id}
-                  label={label}
-                  placeholder={`Filter ${label}`}
-                  value={String(column.getFilterValue() ?? '')}
-                  onChange={event => column.setFilterValue(event.currentTarget.value)}
-                />
-              )
-            })}
+            {filterColumns.map(column => (
+              <ColumnFilter
+                key={`${column.id}-${filtersVersion}`}
+                label={labels.get(column.id) ?? column.id}
+                initialValue={String(column.getFilterValue() ?? '')}
+                onChange={value => {
+                  if (value === (column.getFilterValue() ?? '')) return
+                  column.setFilterValue(value)
+                  table.setPageIndex(0)
+                }}
+              />
+            ))}
             <Text size="sm" c="dimmed" role="status">
               {filteredRows} of {totalRows} records match.
             </Text>
             <Group grow>
-              <Button variant="default" disabled={activeFilterCount === 0} onClick={() => table.resetColumnFilters()}>
+              <Button variant="default" disabled={activeFilterCount === 0} onClick={() => {
+                  onClearFilters()
+                  setFiltersVersion(version => version + 1)
+                }}>
                 Clear filters
               </Button>
               <Button onClick={closeFilters}>Done</Button>
@@ -95,5 +100,29 @@ export function DataGridToolbar<T extends RowData>({
         </Drawer>
       )}
     </>
+  )
+}
+
+interface ColumnFilterProps {
+  label: string
+  initialValue: string
+  onChange: (value: string) => void
+}
+
+function ColumnFilter({ label, initialValue, onChange }: ColumnFilterProps) {
+  const [value, setValue] = useState(initialValue)
+  const [debouncedValue] = useDebouncedValue(value, 250)
+
+  const applyFilter = useEffectEvent(onChange)
+
+  useEffect(() => applyFilter(debouncedValue), [debouncedValue])
+
+  return (
+    <TextInput
+      label={label}
+      placeholder={`Filter ${label}`}
+      value={value}
+      onChange={event => setValue(event.currentTarget.value)}
+    />
   )
 }

@@ -41,6 +41,8 @@ export function DataGrid<T extends RowData>({
     enableMultiSort: false,
     enableSortingRemoval: true,
     sortDescFirst: false,
+    // Editing a row shouldn't jump back to the first page; sorting and filtering reset it below.
+    autoResetPageIndex: false,
     initialState: {
       pagination: { pageIndex: 0, pageSize: initialPageSize },
       columnVisibility: getInitialVisibility(columns),
@@ -53,6 +55,11 @@ export function DataGrid<T extends RowData>({
   const pageCount = unavailable ? 1 : Math.max(1, table.getPageCount())
   const start = pageIndex * pageSize
 
+  function clearFilters() {
+    table.resetColumnFilters()
+    table.setPageIndex(0)
+  }
+
   return (
     <Paper withBorder radius="md" aria-busy={loading} style={{ overflow: 'hidden' }}>
       <DataGridToolbar
@@ -63,6 +70,7 @@ export function DataGrid<T extends RowData>({
         totalRows={rows.length}
         filteredRows={rowCount}
         disabled={unavailable}
+        onClearFilters={clearFilters}
       />
       <Table.ScrollContainer minWidth={600} maxHeight="min(55vh, 32rem)" type="native">
         <Table
@@ -88,7 +96,14 @@ export function DataGrid<T extends RowData>({
                       aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : undefined}
                     >
                       {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                        <UnstyledButton disabled={unavailable} onClick={header.column.getToggleSortingHandler()} fw={600}>
+                        <UnstyledButton
+                          disabled={unavailable}
+                          fw={600}
+                          onClick={event => {
+                            header.column.getToggleSortingHandler()?.(event)
+                            table.setPageIndex(0)
+                          }}
+                        >
                           <Group gap="xs" wrap="nowrap">
                             <table.FlexRender header={header} />
                             <span aria-hidden="true">{direction === 'asc' ? '↑' : direction === 'desc' ? '↓' : '↕'}</span>
@@ -110,7 +125,7 @@ export function DataGrid<T extends RowData>({
                     error={error}
                     hasData={rows.length > 0}
                     onRetry={onRetry}
-                    onClearFilters={() => table.resetColumnFilters()}
+                    onClearFilters={clearFilters}
                   />
                 </Table.Td>
               </Table.Tr>
