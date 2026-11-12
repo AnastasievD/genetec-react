@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { ColumnDef, RowData } from '@tanstack/react-table'
+import type { ColumnDef } from '@tanstack/react-table'
 import type { DataGridFeatures } from './features'
 
 export type DataGridFilter = 'text' | 'select' | 'date'
@@ -17,9 +17,9 @@ export interface DataGridColumn<T> {
   filterOptions?: readonly string[]
 }
 
-export function toColumnDef<T extends RowData>(column: DataGridColumn<T>): ColumnDef<DataGridFeatures, T> {
+export function toColumnDef<T extends object>(column: DataGridColumn<T>): ColumnDef<DataGridFeatures, T> {
   const { id, label, accessor, render, hideable = true, sort = 'text', filter = 'text' } = column
-  const read = typeof accessor === 'string' ? (row: T) => row[accessor as keyof T] : accessor
+  const read = typeof accessor === 'string' ? (row: T) => row[accessor] : accessor
 
   return {
     id,

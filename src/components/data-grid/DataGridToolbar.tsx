@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Badge, Button, Checkbox, Drawer, Group, Popover, Select, Stack, Text, TextInput } from '@mantine/core'
 import { useDebouncedCallback, useDisclosure } from '@mantine/hooks'
-import type { Column, ReactTable, RowData } from '@tanstack/react-table'
-import type { DataGridColumn } from './columns'
+import type { ReactTable } from '@tanstack/react-table'
+import type { DataGridColumn, DataGridFilter } from './columns'
 import type { DataGridFeatures } from './features'
 
-interface DataGridToolbarProps<T extends RowData> {
+interface DataGridToolbarProps<T extends object> {
   table: ReactTable<DataGridFeatures, T>
   caption: string
   captionId: string
@@ -16,7 +16,7 @@ interface DataGridToolbarProps<T extends RowData> {
   onClearFilters: () => void
 }
 
-export function DataGridToolbar<T extends RowData>({
+export function DataGridToolbar<T extends object>({
   table, caption, captionId, columnsById, totalRows, filteredRows, disabled, onClearFilters,
 }: DataGridToolbarProps<T>) {
   const [filtersOpened, { open: openFilters, close: closeFilters }] = useDisclosure(false)
@@ -73,17 +73,23 @@ export function DataGridToolbar<T extends RowData>({
           closeButtonProps={{ 'aria-label': 'Close filters' }}
         >
           <Stack>
-            {filterColumns.map(column => (
-              <ColumnFilter
-                key={`${column.id}-${filtersVersion}`}
-                column={column}
-                config={columnsById.get(column.id)}
-                onChange={value => {
-                  column.setFilterValue(value)
-                  table.setPageIndex(0)
-                }}
-              />
-            ))}
+            {filterColumns.map(column => {
+              const config = columnsById.get(column.id)
+
+              return (
+                <ColumnFilter
+                  key={`${column.id}-${filtersVersion}`}
+                  label={config?.label ?? column.id}
+                  type={config?.filter}
+                  options={config?.filterOptions}
+                  value={String(column.getFilterValue() ?? '')}
+                  onChange={value => {
+                    column.setFilterValue(value)
+                    table.setPageIndex(0)
+                  }}
+                />
+              )
+            })}
             <Text size="sm" c="dimmed" role="status">
               {filteredRows.toLocaleString('en')} of {totalRows.toLocaleString('en')} records match.
             </Text>
@@ -107,23 +113,22 @@ export function DataGridToolbar<T extends RowData>({
   )
 }
 
-interface ColumnFilterProps<T extends RowData> {
-  column: Column<DataGridFeatures, T>
-  config?: DataGridColumn<T>
+interface ColumnFilterProps {
+  label: string
+  type?: DataGridFilter | false
+  options?: readonly string[]
+  value: string
   onChange: (value: string) => void
 }
 
-function ColumnFilter<T extends RowData>({ column, config, onChange }: ColumnFilterProps<T>) {
-  const label = config?.label ?? column.id
-  const value = String(column.getFilterValue() ?? '')
-
-  switch (config?.filter) {
+function ColumnFilter({ label, type, options = [], value, onChange }: ColumnFilterProps) {
+  switch (type) {
     case 'select':
       return (
         <Select
           label={label}
           placeholder="Any"
-          data={config.filterOptions ?? []}
+          data={options}
           value={value || null}
           onChange={option => onChange(option ?? '')}
           clearable

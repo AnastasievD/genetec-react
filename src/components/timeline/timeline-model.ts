@@ -1,19 +1,18 @@
-export interface TimelineItemRow<T> {
-  type: 'item'
-  key: string
-  id: string
-  item: T
-  groupIndex: number
-  position: number
-}
+type TimelineRow<T> =
+  | { type: 'group'; key: string; groupIndex: number }
+  | { type: 'item'; key: string; groupIndex: number; id: string; item: T; position: number }
 
-type TimelineRow<T> = { type: 'group'; key: string; groupIndex: number } | TimelineItemRow<T>
+export interface TimelineModel<T> {
+  rows: TimelineRow<T>[]
+  groups: { key: string; firstRowIndex: number; count: number }[]
+  rowIndexById: Map<string, number>
+}
 
 export function createTimelineModel<T>(
   items: readonly T[],
   getId: (item: T) => string,
   getGroupKey: (item: T) => string,
-) {
+): TimelineModel<T> {
   const byGroup = new Map<string, T[]>()
 
   for (const item of items) {
@@ -23,8 +22,8 @@ export function createTimelineModel<T>(
     else byGroup.set(key, [item])
   }
 
-  const rows: TimelineRow<T>[] = []
-  const groups: { key: string; firstRowIndex: number; count: number }[] = []
+  const rows: TimelineModel<T>['rows'] = []
+  const groups: TimelineModel<T>['groups'] = []
   const rowIndexById = new Map<string, number>()
 
   // Keys are compared as plain strings, which is the right order for ISO dates.
@@ -43,10 +42,8 @@ export function createTimelineModel<T>(
   return { rows, groups, rowIndexById }
 }
 
-export type TimelineModel<T> = ReturnType<typeof createTimelineModel<T>>
-
 // Every group has at least one item, so a step lands on an item after skipping at most one header.
-export function getNavigationTarget<T>({ rows, groups }: TimelineModel<T>, current: number, key: string) {
+export function getNavigationTarget({ rows, groups }: TimelineModel<unknown>, current: number, key: string) {
   const row = rows[current]
   if (row?.type !== 'item') return undefined
 

@@ -1,14 +1,13 @@
 import { useEffect, useEffectEvent, useId, useMemo, useRef } from 'react'
 import { Flex, Group, Pagination, Paper, Table, Text, UnstyledButton } from '@mantine/core'
 import { useTable } from '@tanstack/react-table'
-import type { RowData } from '@tanstack/react-table'
 import { getInitialVisibility, toColumnDef } from './columns'
 import type { DataGridColumn } from './columns'
 import { features } from './features'
 import { DataGridState } from './DataGridState'
 import { DataGridToolbar } from './DataGridToolbar'
 
-export interface DataGridProps<T extends RowData> {
+export interface DataGridProps<T extends object> {
   caption: string
   rows: readonly T[]
   columns: readonly DataGridColumn<T>[]
@@ -21,7 +20,7 @@ export interface DataGridProps<T extends RowData> {
   onRetry?: () => void
 }
 
-export function DataGrid<T extends RowData>({
+export function DataGrid<T extends object>({
   caption,
   rows,
   columns,
