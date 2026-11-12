@@ -26,8 +26,7 @@ export function createTimelineModel<T>(
   const groups: TimelineModel<T>['groups'] = []
   const rowIndexById = new Map<string, number>()
 
-  // Keys are compared as plain strings, which is the right order for ISO dates.
-  for (const [key, groupItems] of [...byGroup].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
+  for (const [key, groupItems] of [...byGroup].sort(([a], [b]) => a.localeCompare(b))) {
     const groupIndex = groups.length
     rows.push({ type: 'group', key: `group-${key}`, groupIndex })
     groups.push({ key, firstRowIndex: rows.length, count: groupItems.length })

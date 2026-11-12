@@ -13,7 +13,6 @@ export interface DataGridProps<T extends object> {
   columns: readonly DataGridColumn<T>[]
   getRowId: (row: T) => string
   initialPageSize?: number
-  // Row to bring into view and highlight, e.g. the one just saved.
   highlightedId?: string
   loading?: boolean
   error?: string
@@ -34,7 +33,6 @@ export function DataGrid<T extends object>({
   const captionId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
   const columnDefs = useMemo(() => columns.map(toColumnDef), [columns])
-  const columnsById = useMemo(() => new Map(columns.map(column => [column.id, column])), [columns])
   const table = useTable({
     features,
     data: rows,
@@ -53,15 +51,14 @@ export function DataGrid<T extends object>({
   const { pageIndex, pageSize } = table.state.pagination
   const unavailable = loading || Boolean(error)
   const visibleRows = unavailable ? [] : table.getRowModel().rows
-  const rowCount = unavailable ? 0 : table.getRowCount()
-  const pageCount = unavailable ? 1 : Math.max(1, table.getPageCount())
+  const rowCount = table.getRowCount()
+  const pageCount = Math.max(1, table.getPageCount())
   const start = pageIndex * pageSize
-  const lastPageIndex = Math.max(0, table.getPageCount() - 1)
 
   // Rows can shrink without a filter change (e.g. a new data set), so keep the page in range.
   useEffect(() => {
-    if (pageIndex > lastPageIndex) table.setPageIndex(lastPageIndex)
-  }, [pageIndex, lastPageIndex, table])
+    if (pageIndex >= pageCount) table.setPageIndex(pageCount - 1)
+  }, [pageIndex, pageCount, table])
 
   const revealHighlighted = useEffectEvent(() => {
     if (!highlightedId) return
@@ -96,7 +93,7 @@ export function DataGrid<T extends object>({
         table={table}
         caption={caption}
         captionId={captionId}
-        columnsById={columnsById}
+        columns={columns}
         totalRows={rows.length}
         filteredRows={rowCount}
         disabled={unavailable}

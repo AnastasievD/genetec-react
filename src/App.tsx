@@ -129,7 +129,6 @@ export default function App() {
         </Activity>
         <Activity mode={view === 'timeline' ? 'visible' : 'hidden'}>
           <Timeline
-            title="Timeline"
             description={`${timelineEvents.length.toLocaleString('en')} events grouped by day`}
             emptyMessage="No events to display."
             items={timelineEvents}

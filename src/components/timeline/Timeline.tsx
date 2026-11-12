@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useEffectEvent, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useEffectEvent, useId, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import type { KeyboardEvent, ReactNode } from 'react'
 import { Box, Group, Paper, Text, UnstyledButton, VisuallyHidden } from '@mantine/core'
 import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual'
@@ -14,7 +15,6 @@ export interface TimelineProps<T> {
   getItemLabel: (item: T) => string
   renderItem: (item: T) => ReactNode
   onItemSelect?: (item: T) => void
-  // Item to scroll to and highlight, e.g. the one just saved.
   highlightedId?: string
   title?: string
   description?: ReactNode
@@ -37,7 +37,6 @@ export function Timeline<T>({
   const titleId = useId()
   const instructionsId = useId()
   const scrollRef = useRef<HTMLDivElement>(null)
-  const pendingFocus = useRef<string | null>(null)
   const announcedGroup = useRef<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
@@ -79,17 +78,6 @@ export function Timeline<T>({
 
   useEffect(() => revealHighlighted(), [highlightedId, model])
 
-  useLayoutEffect(() => {
-    const id = pendingFocus.current
-    if (!id) return
-
-    const button = scrollRef.current?.querySelector<HTMLElement>(`[data-item-id="${CSS.escape(id)}"]`)
-    if (button) {
-      button.focus({ preventScroll: true })
-      pendingFocus.current = null
-    }
-  }, [activeId, virtualItems])
-
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, rowIndex: number) {
     const index = getNavigationTarget(model, rowIndex, event.key)
     if (index === undefined) return
@@ -98,8 +86,9 @@ export function Timeline<T>({
     const target = model.rows[index]
     if (target?.type !== 'item') return
 
-    pendingFocus.current = target.id
-    setActiveId(target.id)
+    // The target may not be rendered yet; the active item always is, so render it first.
+    flushSync(() => setActiveId(target.id))
+    scrollRef.current?.querySelector<HTMLElement>(`[data-item-id="${CSS.escape(target.id)}"]`)?.focus({ preventScroll: true })
     virtualizer.scrollToIndex(index, { align: 'auto' })
   }
 
@@ -160,7 +149,6 @@ export function Timeline<T>({
                       px="md"
                       bg={row.id === highlightedId ? 'var(--mantine-primary-color-light)' : undefined}
                       tabIndex={virtualItem.index === activeRowIndex ? 0 : -1}
-                      // The button's own name covers the item; the live region only announces group changes.
                       aria-label={`${getItemLabel(row.item)}, ${row.position + 1} of ${group?.count}`}
                       onFocus={() => {
                         setActiveId(row.id)

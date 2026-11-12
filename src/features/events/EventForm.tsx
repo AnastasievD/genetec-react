@@ -18,12 +18,9 @@ export function EventForm({ initialValues, onSave, onCancel }: EventFormProps) {
     validate: {
       title: isNotEmpty('Enter a title.'),
       date: value => {
-        const date = new Date(`${value}T00:00:00Z`)
-        const valid = /^\d{4}-\d{2}-\d{2}$/.test(value)
-          && !value.startsWith('0000-')
-          && !Number.isNaN(date.getTime())
-          && date.toISOString().slice(0, 10) === value
-
+        // new Date() turns 2026-02-30 into March 2 instead of failing, so compare it back.
+        const date = new Date(value)
+        const valid = !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
         return valid ? null : 'Enter a valid date.'
       },
     },

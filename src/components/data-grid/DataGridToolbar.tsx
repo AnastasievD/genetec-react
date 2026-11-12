@@ -9,7 +9,7 @@ interface DataGridToolbarProps<T extends object> {
   table: ReactTable<DataGridFeatures, T>
   caption: string
   captionId: string
-  columnsById: ReadonlyMap<string, DataGridColumn<T>>
+  columns: readonly DataGridColumn<T>[]
   totalRows: number
   filteredRows: number
   disabled: boolean
@@ -17,12 +17,12 @@ interface DataGridToolbarProps<T extends object> {
 }
 
 export function DataGridToolbar<T extends object>({
-  table, caption, captionId, columnsById, totalRows, filteredRows, disabled, onClearFilters,
+  table, caption, captionId, columns, totalRows, filteredRows, disabled, onClearFilters,
 }: DataGridToolbarProps<T>) {
   const [filtersOpened, { open: openFilters, close: closeFilters }] = useDisclosure(false)
   const [filtersVersion, setFiltersVersion] = useState(0)
-  const columns = table.getAllLeafColumns()
-  const filterColumns = columns.filter(column => column.getCanFilter())
+  const tableColumns = table.getAllLeafColumns()
+  const filterColumns = tableColumns.filter(column => column.getCanFilter())
   const activeFilterCount = table.state.columnFilters.length
   const visibleColumnCount = table.getVisibleLeafColumns().length
 
@@ -37,10 +37,10 @@ export function DataGridToolbar<T extends object>({
             </Popover.Target>
             <Popover.Dropdown aria-label="Visible columns">
               <Stack gap="sm">
-                {columns.map(column => (
+                {tableColumns.map(column => (
                   <Checkbox
                     key={column.id}
-                    label={columnsById.get(column.id)?.label ?? column.id}
+                    label={columns.find(config => config.id === column.id)?.label ?? column.id}
                     checked={column.getIsVisible()}
                     disabled={!column.getCanHide() || (column.getIsVisible() && visibleColumnCount === 1)}
                     onChange={column.getToggleVisibilityHandler()}
@@ -74,7 +74,7 @@ export function DataGridToolbar<T extends object>({
         >
           <Stack>
             {filterColumns.map(column => {
-              const config = columnsById.get(column.id)
+              const config = columns.find(config => config.id === column.id)
 
               return (
                 <ColumnFilter
