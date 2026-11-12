@@ -8,7 +8,6 @@ import {
   formatDay,
   getEventDay,
   getEventId,
-  getEventLabel,
   renderEventTimelineItem,
 } from './features/events/event-views'
 import { createMockEvents } from './features/events/mock-events'
@@ -132,7 +131,6 @@ export default function App() {
             getId={getEventId}
             getGroupKey={getEventDay}
             formatGroupKey={formatDay}
-            getItemLabel={getEventLabel}
             renderItem={renderEventTimelineItem}
             onItemSelect={event => setEditor({ event })}
           />

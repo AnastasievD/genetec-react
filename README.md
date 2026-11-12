@@ -45,9 +45,10 @@ UTC, so an event never moves to another day because of the user's time zone.
 
 Keyboard: ↑/↓ moves between events, ←/→ jumps to the same position in the previous or
 next day, Home/End go to the first or last event, Enter opens the edit form. The whole
-timeline is one tab stop (roving tabindex). A screen reader reads the event and its
-position ("2 of 28") on focus. The live region only speaks when you move into another
-day, otherwise everything was read twice.
+timeline is one tab stop (roving tabindex). It's a `listbox` with events as options: with
+plain buttons NVDA and JAWS would keep the arrow keys for their reading mode. A screen
+reader reads the event and its position ("2 of 28") on focus. The live region only speaks
+when you move into another day, otherwise everything was read twice.
 
 ## 100k rows
 

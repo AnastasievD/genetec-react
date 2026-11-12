@@ -23,7 +23,7 @@ export function DataGridState({ loading, error, hasData, onRetry, onClearFilters
       <Alert color="red" title="Unable to load records" my="md">
         <Stack align="flex-start" gap="sm">
           <Text size="sm">{error}</Text>
-          {onRetry && <Button size="xs" variant="outline" color="red" onClick={onRetry}>Try again</Button>}
+          {onRetry && <Button size="xs" variant="default" onClick={onRetry}>Try again</Button>}
         </Stack>
       </Alert>
     )

@@ -5,7 +5,6 @@ import type { CalendarEvent, EventStatus } from './event'
 
 export const getEventId = (event: CalendarEvent) => event.id
 export const getEventDay = (event: CalendarEvent) => event.date
-export const getEventLabel = (event: CalendarEvent) => event.title
 
 const dayFormatter = new Intl.DateTimeFormat('en', { dateStyle: 'full', timeZone: 'UTC' })
 
@@ -29,7 +28,7 @@ export function createEventColumns(onEdit: (event: CalendarEvent) => void): Data
       accessor: 'status',
       filter: 'select',
       filterOptions: eventStatuses,
-      render: event => <Badge variant="light" color={statusColors[event.status]}>{event.status}</Badge>,
+      render: event => <Badge variant="dot" color={statusColors[event.status]}>{event.status}</Badge>,
     },
     { id: 'priority', label: 'Priority', accessor: 'priority', sort: 'number', filter: 'select', filterOptions: eventPriorities },
     { id: 'location', label: 'Location', accessor: 'location', filter: 'select', filterOptions: eventLocations, hidden: true },

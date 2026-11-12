@@ -12,7 +12,6 @@ export interface TimelineProps<T> {
   getId: (item: T) => string
   getGroupKey: (item: T) => string
   formatGroupKey?: (key: string) => string
-  getItemLabel: (item: T) => string
   renderItem: (item: T) => ReactNode
   onItemSelect?: (item: T) => void
   title?: string
@@ -25,7 +24,6 @@ export function Timeline<T>({
   getId,
   getGroupKey,
   formatGroupKey = key => key,
-  getItemLabel,
   renderItem,
   onItemSelect,
   title = 'Timeline',
@@ -65,7 +63,7 @@ export function Timeline<T>({
   })
   const virtualItems = virtualizer.getVirtualItems()
 
-  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, rowIndex: number) {
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>, rowIndex: number) {
     const index = getNavigationTarget(model, rowIndex, event.key)
     if (index === undefined) return
     event.preventDefault()
@@ -97,7 +95,8 @@ export function Timeline<T>({
       ) : (
         <Box
           ref={scrollRef}
-          role="region"
+          // A listbox makes screen readers pass arrow keys to us instead of using them for reading.
+          role="listbox"
           aria-labelledby={titleId}
           aria-describedby={instructionsId}
           onBlur={event => {
@@ -125,17 +124,20 @@ export function Timeline<T>({
                   style={{ transform: `translateY(${virtualItem.start}px)` }}
                 >
                   {row.type === 'group' ? (
-                    <Group h="100%" px="md" bg="var(--mantine-color-default-hover)">
+                    // Hidden from screen readers: a listbox can only hold options, and the day is announced on focus.
+                    <Group h="100%" px="md" bg="var(--mantine-color-default-hover)" aria-hidden>
                       <Text component="h3" size="sm" fw={600} m={0} truncate>{groupLabel}</Text>
                     </Group>
                   ) : (
                     <UnstyledButton
+                      component="div"
+                      role="option"
+                      aria-selected={virtualItem.index === activeRowIndex}
                       data-item-id={row.id}
                       w="100%"
                       h="100%"
                       px="md"
                       tabIndex={virtualItem.index === activeRowIndex ? 0 : -1}
-                      aria-label={`${getItemLabel(row.item)}, ${row.position + 1} of ${group?.count}`}
                       onFocus={() => {
                         setActiveId(row.id)
                         if (announcedGroup.current !== group?.key) {
@@ -143,10 +145,14 @@ export function Timeline<T>({
                           setAnnouncement(`${groupLabel}, ${group?.count} items`)
                         }
                       }}
-                      onKeyDown={event => handleKeyDown(event, virtualItem.index)}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter') onItemSelect?.(row.item)
+                        else handleKeyDown(event, virtualItem.index)
+                      }}
                       onClick={() => onItemSelect?.(row.item)}
                     >
                       {renderItem(row.item)}
+                      <VisuallyHidden>, {row.position + 1} of {group?.count}</VisuallyHidden>
                     </UnstyledButton>
                   )}
                 </Box>
