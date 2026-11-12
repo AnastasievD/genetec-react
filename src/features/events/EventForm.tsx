@@ -1,33 +1,18 @@
 import { Button, Group, Select, SimpleGrid, Stack, TextInput } from '@mantine/core'
 import { isNotEmpty, useForm } from '@mantine/form'
+import { eventLocations, eventPriorities, eventStatuses } from './event'
+import type { EventStatus, EventValues } from './event'
 
-export interface EventFormValues<Status extends string = string> {
-  title: string
-  date: string
-  status: Status
-  location: string
-  priority: number
-}
-
-export interface EventFormProps<Status extends string> {
-  initialValues: EventFormValues<Status>
-  statusOptions: readonly Status[]
-  locationOptions: readonly string[]
-  onSave: (values: EventFormValues<Status>) => void
+interface EventFormProps {
+  initialValues: EventValues
+  onSave: (values: EventValues) => void
   onCancel: () => void
 }
 
 const fieldOrder = ['title', 'date'] as const
-const priorityOptions = ['1', '2', '3', '4', '5']
 
-export function EventForm<Status extends string>({
-  initialValues,
-  statusOptions,
-  locationOptions,
-  onSave,
-  onCancel,
-}: EventFormProps<Status>) {
-  const form = useForm<EventFormValues<Status>>({
+export function EventForm({ initialValues, onSave, onCancel }: EventFormProps) {
+  const form = useForm<EventValues>({
     mode: 'controlled',
     initialValues,
     validate: {
@@ -72,15 +57,15 @@ export function EventForm<Status extends string>({
           {...form.getInputProps('date')}
         />
         <SimpleGrid cols={2}>
-          <Select<Status>
+          <Select<EventStatus>
             label="Status"
-            data={statusOptions}
+            data={eventStatuses}
             allowDeselect={false}
             {...form.getInputProps('status')}
           />
           <Select
             label="Priority (1 = highest)"
-            data={priorityOptions}
+            data={eventPriorities}
             allowDeselect={false}
             value={String(form.values.priority)}
             onChange={value => form.setFieldValue('priority', Number(value))}
@@ -88,7 +73,7 @@ export function EventForm<Status extends string>({
         </SimpleGrid>
         <Select
           label="Location"
-          data={locationOptions}
+          data={eventLocations}
           allowDeselect={false}
           {...form.getInputProps('location')}
         />

@@ -1,5 +1,5 @@
 export { DataGrid } from './data-grid/DataGrid'
+export type { DataGridProps } from './data-grid/DataGrid'
 export type { DataGridColumn } from './data-grid/columns'
 export { Timeline } from './timeline/Timeline'
-export { EventForm } from './event-form/EventForm'
-export type { EventFormValues } from './event-form/EventForm'
+export type { TimelineProps } from './timeline/Timeline'

@@ -5,7 +5,7 @@ import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual'
 import type { Range } from '@tanstack/react-virtual'
 import { createTimelineModel, getNavigationTarget } from './timeline-model'
 
-interface TimelineProps<T> {
+export interface TimelineProps<T> {
   items: readonly T[]
   // Should be stable references, otherwise the groups are rebuilt on every render.
   getId: (item: T) => string
