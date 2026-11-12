@@ -1,18 +1,33 @@
 import { Button, Group, Select, SimpleGrid, Stack, TextInput } from '@mantine/core'
 import { isNotEmpty, useForm } from '@mantine/form'
-import { eventLocations, eventPriorities, eventStatuses } from './event'
-import type { EventStatus, EventValues } from './event'
 
-interface EventFormProps {
-  initialValues: EventValues
-  onSave: (values: EventValues) => void
+export interface EventFormValues<Status extends string = string> {
+  title: string
+  date: string
+  status: Status
+  location: string
+  priority: number
+}
+
+export interface EventFormProps<Status extends string> {
+  initialValues: EventFormValues<Status>
+  statusOptions: readonly Status[]
+  locationOptions: readonly string[]
+  onSave: (values: EventFormValues<Status>) => void
   onCancel: () => void
 }
 
 const fieldOrder = ['title', 'date'] as const
+const priorityOptions = ['1', '2', '3', '4', '5']
 
-export function EventForm({ initialValues, onSave, onCancel }: EventFormProps) {
-  const form = useForm<EventValues>({
+export function EventForm<Status extends string>({
+  initialValues,
+  statusOptions,
+  locationOptions,
+  onSave,
+  onCancel,
+}: EventFormProps<Status>) {
+  const form = useForm<EventFormValues<Status>>({
     mode: 'controlled',
     initialValues,
     validate: {
@@ -54,15 +69,15 @@ export function EventForm({ initialValues, onSave, onCancel }: EventFormProps) {
           {...form.getInputProps('date')}
         />
         <SimpleGrid cols={2}>
-          <Select<EventStatus>
+          <Select<Status>
             label="Status"
-            data={eventStatuses}
+            data={statusOptions}
             allowDeselect={false}
             {...form.getInputProps('status')}
           />
           <Select
             label="Priority (1 = highest)"
-            data={eventPriorities}
+            data={priorityOptions}
             allowDeselect={false}
             value={String(form.values.priority)}
             onChange={value => form.setFieldValue('priority', Number(value))}
@@ -70,7 +85,7 @@ export function EventForm({ initialValues, onSave, onCancel }: EventFormProps) {
         </SimpleGrid>
         <Select
           label="Location"
-          data={eventLocations}
+          data={locationOptions}
           allowDeselect={false}
           {...form.getInputProps('location')}
         />

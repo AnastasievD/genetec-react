@@ -13,11 +13,11 @@ Checks: `npm run typecheck`, `npm run lint`, `npm run build`.
 
 ## How it's organised
 
-`src/components` is the "library" part. It doesn't know about events at all and doesn't
-import anything from `src/features`, so it could be moved into a separate package as is.
-`src/features/events` holds the event type, mock data, the event form and the config that
-plugs events into the generic components. The form stays there because it's about events
-and nothing else. `App.tsx` just wires things together.
+`src/components` is the "library" part: the three components from the task. It doesn't
+import anything from `src/features` (the form gets its status and location options as props),
+so it could be moved into a separate package as is.
+`src/features/events` holds the event type, mock data and the config that plugs events
+into the generic components. `App.tsx` just wires things together.
 
 I used Mantine for UI and TanStack Table / Virtual for the heavy lifting. I didn't want
 to write sorting and pagination by hand when a well-tested headless library exists, but

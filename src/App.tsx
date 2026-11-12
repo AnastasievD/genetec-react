@@ -1,7 +1,7 @@
 import { Activity, useMemo, useState } from 'react'
 import { Alert, Box, Button, Container, Group, Modal, SegmentedControl, Select, Stack, Text, Title } from '@mantine/core'
-import { DataGrid, Timeline } from './components'
-import { createEvent, newEventValues } from './features/events/event'
+import { DataGrid, EventForm, Timeline } from './components'
+import { createEvent, eventLocations, eventStatuses, newEventValues } from './features/events/event'
 import type { CalendarEvent, EventValues } from './features/events/event'
 import {
   createEventColumns,
@@ -11,7 +11,6 @@ import {
   getEventLabel,
   renderEventTimelineItem,
 } from './features/events/event-views'
-import { EventForm } from './features/events/EventForm'
 import { createMockEvents } from './features/events/mock-events'
 
 type View = 'grid' | 'timeline'
@@ -92,6 +91,8 @@ export default function App() {
             <EventForm
               key={editor.event?.id ?? 'new'}
               initialValues={editor.event ?? newEventValues}
+              statusOptions={eventStatuses}
+              locationOptions={eventLocations}
               onSave={saveEvent}
               onCancel={() => setEditor(null)}
             />
