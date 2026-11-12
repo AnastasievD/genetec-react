@@ -70,9 +70,9 @@ applied 250 ms after you stop typing.
   by default; I turned that off and reset the page only on sort or filter changes.
 - The success message lives in a `role="status"` region that is always in the DOM. It's in
   `App`, not in the form, because the form closes together with the modal after saving.
-- After saving, the grid jumps to the page where the event ended up (with the current sort)
-  and highlights it; the timeline scrolls to it. If a filter hides the event, filters are
-  cleared, otherwise there's no way to show it.
+- New events are added to the top of the list, so with no sorting they show up on the first
+  page. I tried jumping to the saved row, but with sorting and filters it got complicated for
+  something the task doesn't ask for, so I dropped it.
 - The "Grid scenario" select is there to show the loading, empty and error states. With
   mock data they wouldn't be visible otherwise.
 

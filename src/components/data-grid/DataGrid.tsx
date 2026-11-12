@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useId, useMemo, useRef } from 'react'
+import { useEffect, useId, useMemo } from 'react'
 import { Flex, Group, Pagination, Paper, Table, Text, UnstyledButton } from '@mantine/core'
 import { useTable } from '@tanstack/react-table'
 import { getInitialVisibility, toColumnDef } from './columns'
@@ -13,7 +13,6 @@ export interface DataGridProps<T extends object> {
   columns: readonly DataGridColumn<T>[]
   getRowId: (row: T) => string
   initialPageSize?: number
-  highlightedId?: string
   loading?: boolean
   error?: string
   onRetry?: () => void
@@ -25,13 +24,11 @@ export function DataGrid<T extends object>({
   columns,
   getRowId,
   initialPageSize = 25,
-  highlightedId,
   loading = false,
   error,
   onRetry,
 }: DataGridProps<T>) {
   const captionId = useId()
-  const rootRef = useRef<HTMLDivElement>(null)
   const columnDefs = useMemo(() => columns.map(toColumnDef), [columns])
   const table = useTable({
     features,
@@ -60,35 +57,13 @@ export function DataGrid<T extends object>({
     if (pageIndex >= pageCount) table.setPageIndex(pageCount - 1)
   }, [pageIndex, pageCount, table])
 
-  const revealHighlighted = useEffectEvent(() => {
-    if (!highlightedId) return
-
-    const findIndex = () => table.getPrePaginatedRowModel().rows.findIndex(row => row.id === highlightedId)
-    let index = findIndex()
-    if (index === -1 && table.state.columnFilters.length > 0) {
-      table.resetColumnFilters()
-      index = findIndex()
-    }
-    if (index !== -1) table.setPageIndex(Math.floor(index / pageSize))
-  })
-
-  // Only after a save (new id or new data), not on every sort, filter or page change.
-  useEffect(() => revealHighlighted(), [highlightedId, rows])
-
-  useEffect(() => {
-    if (!highlightedId) return
-    rootRef.current
-      ?.querySelector(`[data-row-id="${CSS.escape(highlightedId)}"]`)
-      ?.scrollIntoView({ block: 'nearest' })
-  }, [highlightedId, pageIndex])
-
   function clearFilters() {
     table.resetColumnFilters()
     table.setPageIndex(0)
   }
 
   return (
-    <Paper ref={rootRef} withBorder radius="md" aria-busy={loading} style={{ overflow: 'hidden' }}>
+    <Paper withBorder radius="md" aria-busy={loading} style={{ overflow: 'hidden' }}>
       <DataGridToolbar
         table={table}
         caption={caption}
@@ -157,11 +132,7 @@ export function DataGrid<T extends object>({
                 </Table.Td>
               </Table.Tr>
             ) : visibleRows.map(row => (
-              <Table.Tr
-                key={row.id}
-                data-row-id={row.id}
-                bg={row.id === highlightedId ? 'var(--mantine-primary-color-light)' : undefined}
-              >
+              <Table.Tr key={row.id}>
                 {row.getVisibleCells().map(cell => {
                   const value = cell.getValue()
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import type { KeyboardEvent, ReactNode } from 'react'
 import { Box, Group, Paper, Text, UnstyledButton, VisuallyHidden } from '@mantine/core'
@@ -15,7 +15,6 @@ export interface TimelineProps<T> {
   getItemLabel: (item: T) => string
   renderItem: (item: T) => ReactNode
   onItemSelect?: (item: T) => void
-  highlightedId?: string
   title?: string
   description?: ReactNode
   emptyMessage?: ReactNode
@@ -29,7 +28,6 @@ export function Timeline<T>({
   getItemLabel,
   renderItem,
   onItemSelect,
-  highlightedId,
   title = 'Timeline',
   description,
   emptyMessage = 'Nothing to display.',
@@ -66,17 +64,6 @@ export function Timeline<T>({
     overscan: 5,
   })
   const virtualItems = virtualizer.getVirtualItems()
-
-  const revealHighlighted = useEffectEvent(() => {
-    const index = highlightedId ? model.rowIndexById.get(highlightedId) : undefined
-    if (index === undefined) return
-
-    // Make it the tab stop, but don't move focus away from where the user is.
-    setActiveId(highlightedId ?? null)
-    virtualizer.scrollToIndex(index, { align: 'center' })
-  })
-
-  useEffect(() => revealHighlighted(), [highlightedId, model])
 
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, rowIndex: number) {
     const index = getNavigationTarget(model, rowIndex, event.key)
@@ -147,7 +134,6 @@ export function Timeline<T>({
                       w="100%"
                       h="100%"
                       px="md"
-                      bg={row.id === highlightedId ? 'var(--mantine-primary-color-light)' : undefined}
                       tabIndex={virtualItem.index === activeRowIndex ? 0 : -1}
                       aria-label={`${getItemLabel(row.item)}, ${row.position + 1} of ${group?.count}`}
                       onFocus={() => {

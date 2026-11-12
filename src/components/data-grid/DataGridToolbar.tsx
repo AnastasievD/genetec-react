@@ -20,6 +20,7 @@ export function DataGridToolbar<T extends object>({
   table, caption, captionId, columns, totalRows, filteredRows, disabled, onClearFilters,
 }: DataGridToolbarProps<T>) {
   const [filtersOpened, { open: openFilters, close: closeFilters }] = useDisclosure(false)
+  // Used as a key: bumping it on Clear remounts the inputs, so the text filter drops what was typed.
   const [filtersVersion, setFiltersVersion] = useState(0)
   const tableColumns = table.getAllLeafColumns()
   const filterColumns = tableColumns.filter(column => column.getCanFilter())

@@ -27,7 +27,6 @@ export default function App() {
   const [view, setView] = useState<View>('grid')
   const [editor, setEditor] = useState<{ event?: CalendarEvent } | null>(null)
   const [message, setMessage] = useState('')
-  const [savedId, setSavedId] = useState<string>()
   const columns = useMemo(() => createEventColumns(event => setEditor({ event })), [])
 
   function saveEvent(values: EventValues) {
@@ -35,12 +34,10 @@ export default function App() {
 
     if (existing) {
       setEvents(events => events.map(event => event.id === existing.id ? { ...event, ...values } : event))
-      setSavedId(existing.id)
     } else {
       const event = createEvent(values)
       setEvents(events => [event, ...events])
       setTimelineIds(ids => new Set(ids).add(event.id))
-      setSavedId(event.id)
     }
 
     setEditor(null)
@@ -123,7 +120,6 @@ export default function App() {
               loading={scenario === 'loading'}
               error={scenario === 'error' ? 'The mock data source is unavailable. Please try again.' : undefined}
               onRetry={() => setScenario('ready')}
-              highlightedId={savedId}
             />
           </Stack>
         </Activity>
@@ -138,7 +134,6 @@ export default function App() {
             getItemLabel={getEventLabel}
             renderItem={renderEventTimelineItem}
             onItemSelect={event => setEditor({ event })}
-            highlightedId={savedId}
           />
         </Activity>
       </Stack>
